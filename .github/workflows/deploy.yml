@@ -49,6 +49,9 @@ jobs:
       - name: Build frontend
         # Вказати робочу директорію для цієї команди
         working-directory: ./frontend
+         env:
+          # ЗАМІНІТЬ ЦЕ НА ВАШ РЕАЛЬНИЙ URL БЕКЕНДУ З RENDER!
+          VITE_API_BASE_URL: https://med-system-backend-cbju.onrender.com
         run: npm run build # Ця команда виконає build скрипт з frontend/package.json
         # ПЕРЕКОНАЙТЕСЬ, ЩО У ВАШОМУ frontend/vite.config.js (або у build скрипті)
         # вказано ПРАВИЛЬНИЙ 'base': '/<REPO_NAME>/'
