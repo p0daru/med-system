@@ -204,9 +204,9 @@ function InjuredForm({
         if (formData.vitalPulse || formData.vitalBp || formData.vitalRespiration || formData.vitalSpo2 || formData.vitalTemperature || formData.vitalConsciousness !== 'Unknown' || formData.vitalTimestamp) {
              submissionData.vitalSignsHistory.push({
                 timestamp: formData.vitalTimestamp || new Date().toISOString(), // Поточний час, якщо не вказано
-                pulse: formData.vitalPulse ? Number(formData.vitalPulse) : null,
+                pulse: formData.vitalPulse || null,
                 bp: formData.vitalBp || null,
-                respiration: formData.vitalRespiration ? Number(formData.vitalRespiration) : null,
+                respiration: formData.vitalRespiration || null, 
                 spo2: formData.vitalSpo2 ? Number(formData.vitalSpo2) : null,
                 temperature: formData.vitalTemperature ? Number(formData.vitalTemperature) : null,
                 consciousness: formData.vitalConsciousness
