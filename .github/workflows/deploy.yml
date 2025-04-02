@@ -1,0 +1,70 @@
+# Назва робочого процесу
+name: Deploy Frontend to GitHub Pages
+
+on:
+  push:
+    branches: [ main ] # Або ваша основна гілка
+    # (ОПЦІОНАЛЬНО) Запускати тільки якщо зміни відбулися в папці frontend або в самому workflow
+    paths:
+      - 'frontend/**'
+      - '.github/workflows/deploy.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      # 1. Отримати код ВСЬОГО репозиторію
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # 2. Налаштувати Node.js
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18 # Або ваша версія
+          cache: 'npm'
+          # Важливо: Вказати шлях до package-lock.json фронтенду для кешування
+          cache-dependency-path: frontend/package-lock.json
+
+      # 3. Встановити залежності ФРОНТЕНДУ
+      - name: Install frontend dependencies
+        # Вказати робочу директорію для цієї команди
+        working-directory: ./frontend
+        run: npm ci
+
+      # 4. Зібрати ФРОНТЕНД
+      - name: Build frontend
+        # Вказати робочу директорію для цієї команди
+        working-directory: ./frontend
+        run: npm run build # Ця команда виконає build скрипт з frontend/package.json
+        # ПЕРЕКОНАЙТЕСЬ, ЩО У ВАШОМУ frontend/vite.config.js (або у build скрипті)
+        # вказано ПРАВИЛЬНИЙ 'base': '/<REPO_NAME>/'
+
+      # 5. Налаштувати GitHub Pages
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      # 6. Завантажити артефакт збірки (папку dist з папки frontend)
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          # Вказати шлях до папки dist ВІДНОСНО КОРЕНЯ РЕПОЗИТОРІЮ
+          path: './frontend/dist'
+
+      # 7. Розгорнути на GitHub Pages
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
