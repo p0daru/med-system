@@ -1,0 +1,28 @@
+# Залежності
+backend/node_modules/
+frontend/node_modules/
+
+# Локальні змінні середовища (НЕ додавайте їх на GitHub!)
+backend/.env
+frontend/.env # Якщо у frontend теж є .env
+
+# Логи
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Файли збірки (якщо є)
+frontend/dist/
+frontend/build/
+
+# Системні файли macOS/Windows
+.DS_Store
+Thumbs.db
+
+# Папки IDE (необов'язково, але рекомендовано)
+.vscode/
+.idea/
