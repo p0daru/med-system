@@ -44,6 +44,7 @@ app.get('/', (req, res) => {
 // Підключаємо маршрути для роботи з даними про поранених
 app.use('/api/injured', injuredRoutes); // Підключаємо маршрути за префіксом /api/injured
 
+
 // Запуск сервера
 app.listen(PORT, () => {
     console.log(`Server is running on port: ${PORT}`);
