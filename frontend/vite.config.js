@@ -15,5 +15,6 @@ export default defineConfig({
         // rewrite: (path) => path.replace(/^\/api/, '') // Якщо бек-енд маршрути НЕ починаються з /api
       }
     }
-  }
+  },
+  base: '/med-system/'
 })
