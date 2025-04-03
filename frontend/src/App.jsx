@@ -6,6 +6,7 @@ import { Box, Container, Heading, Flex, Link as ChakraLink, Spacer } from '@chak
 // Імпортуємо ваші сторінки/компоненти
 import CasualtyCard from './components/CasualtyCard/CasualtyCard';
 import CasualtyListPage from './pages/CasualtyListPage'; 
+import CasualtyLog from './components/CasualtyLog/CasualtyLog';
 // import CasualtyDetailPage from './pages/CasualtyDetailPage';
 import Sidebar from './components/Sidebar/Sidebar'; 
 
@@ -31,10 +32,17 @@ function App() {
         {/* Визначення Маршрутів залишається тут */}
         <Routes>
           {/* Головна сторінка - показує список */}
-          <Route path="/" element={<CasualtyListPage />} />
+          {/* <Route path="/" element={<CasualtyListPage />} /> */}
+          <Route path="/" element={<CasualtyLog />} />
 
           {/* Сторінка для додавання нового запису */}
           <Route path="/add-casualty" element={<CasualtyCard />} />
+
+          {/* Додати мед-картку */}
+          <Route path="/casualty/new" element={<CasualtyCard />} />
+
+          {/* Редагування */}
+          <Route path="/casualty/:id" element={<CasualtyCard />} />
 
           {/* Деталі */}
           {/* <Route path="/casualty/:id" element={<CasualtyDetailPage />} /> */}

@@ -50,27 +50,30 @@ router.post('/', async (req, res) => {
 // --- GET /api/casualty-cards/ --- Отримання списку карток
 router.get('/', async (req, res) => {
     try {
-        // Додамо можливість простого пошуку за ПІБ, номером, НСС
         const { search } = req.query;
         let query = {};
 
         if (search) {
-            // Використовуємо $text індекс для пошуку
-             query = { $text: { $search: search } };
-             // Якщо потрібно точніше, можна використовувати $or з $regex
-            // query = {
-            //     $or: [
-            //         { patientFullName: { $regex: search, $options: 'i' } },
-            //         { individualNumber: { $regex: search, $options: 'i' } },
-            //         { last4SSN: { $regex: search, $options: 'i' } }
-            //     ]
-            // };
+            // Використовуємо $regex для пошуку за початком рядка (case-insensitive)
+            // '^' - початок рядка, 'i' - нечутливий до регістру
+            const searchRegex = new RegExp('^' + search.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'), 'i'); // Екрануємо спецсимволи
+
+            query = {
+                $or: [
+                    { patientFullName: searchRegex },
+                    { individualNumber: searchRegex },
+                    { last4SSN: searchRegex }
+                    // Можна додати інші поля для пошуку, якщо потрібно
+                    // { unit: searchRegex },
+                ]
+            };
+            console.log('Search query:', query);
         }
 
         const cards = await CasualtyCard.find(query)
-            .sort({ createdAt: -1 }) // Сортуємо за датою створення (новіші перші)
-            .select('-__v') // Не повертаємо поле __v
-            .lean(); // Отримуємо прості JS об'єкти замість Mongoose документів
+            .sort({ createdAt: -1 })
+            .select('-__v')
+            .lean();
 
         res.status(200).json(cards);
     } catch (error) {
