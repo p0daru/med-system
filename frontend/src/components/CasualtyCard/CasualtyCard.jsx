@@ -21,6 +21,7 @@ import { createInjured, getInjuredById, updateInjured } from '../../services/inj
 import constants from '../../constants/constants.json';
 // --- Імпортуємо генератор тестових даних ---
 import { generateCasualtyCardData } from '../../utils/mockDataGenerator'; // Перевірте шлях
+import { generateIndividualNumber } from '../../utils/helpers'; 
 
 // --- Helper Functions ---
 const getISOFromDateTime = (dateStr, timeStr) => {
@@ -417,11 +418,25 @@ function CasualtyCard() {
             // --- Remove UI-only or temporary fields ---
             injuryDate: undefined,
             injuryTime: undefined,
-            individualNumber: undefined, // Let backend handle this if it's assigned server-side
             branchOfServiceOther: undefined, // Temporary field
             // Note: tourniquet typeOther fields are handled during tourniquetsToSubmit preparation
             // Note: medication/fluid nameOther fields are handled during their preparation
         };
+
+        // --- !!! Генерація individualNumber ТІЛЬКИ при СТВОРЕННІ !!! ---
+        if (!isEditMode) {
+            const generatedNumber = generateIndividualNumber(
+                submissionData.patientFullName,
+                submissionData.last4SSN
+            );
+            submissionData.individualNumber = generatedNumber; // Додаємо згенерований номер
+            console.log("Generated Individual Number:", generatedNumber);
+        } else {
+            // У режимі редагування НЕ оновлюємо individualNumber з форми,
+            // бо він або прийшов з API, або не повинен змінюватись.
+            // Видаляємо його з даних для оновлення, щоб випадково не перезаписати на бекенді.
+            delete submissionData.individualNumber;
+        }
 
         // Final cleanup: remove any top-level undefined keys
         Object.keys(submissionData).forEach(key => {
