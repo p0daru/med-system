@@ -1,53 +1,61 @@
+// src/App.jsx
 import React from 'react';
-import { Routes, Route } from 'react-router-dom';
-import { Box, Flex, useColorMode, Button, Spacer, Heading } from '@chakra-ui/react';
-import Sidebar from './components/Sidebar/Sidebar'; // Новий компонент бічного меню
-import InjuredListPage from './pages/InjuredListPage/InjuredListPage'; // Сторінка зі списком
-import AddInjuredPage from './pages/AddInjuredPage/AddInjuredPage';   // Сторінка додавання
-import InjuredDetailPage from './pages/InjuredDetailPage/InjuredDetailPage'; // Сторінка деталей
-import EditInjuredPage from './pages/EditInjuredPage/EditInjuredPage'; 
-// import NotFoundPage from './pages/NotFoundPage'; // (Опціонально) Сторінка 404
+import { Routes, Route, Link as RouterLink } from 'react-router-dom'; // Імпорти для роутінгу
+import { Box, Container, Heading, Flex, Link as ChakraLink, Spacer } from '@chakra-ui/react'; // Компоненти Chakra
+
+// Імпортуємо ваші сторінки/компоненти
+import CasualtyCard from './components/CasualtyCard/CasualtyCard';
+import CasualtyListPage from './pages/CasualtyListPage'; 
+// import CasualtyDetailPage from './pages/CasualtyDetailPage';
+import Sidebar from './components/Sidebar/Sidebar'; 
 
 function App() {
-  const { colorMode, toggleColorMode } = useColorMode();
+  const sidebarWidth = '250px'; // Винесемо ширину в змінну для зручності
 
   return (
-    <Flex minH="100vh"> {/* Розтягуємо на весь екран */}
-      {/* Бічне меню */}
+    <Box display="flex"> {/* Головний Flex контейнер */}
+
+      {/* Рендеримо Sidebar */}
       <Sidebar />
 
-      {/* Основний контент */}
-      <Box flex="1" p={{ base: 4, md: 6 }}> {/* Займає решту місця */}
-        {/* Хедер (якщо потрібен над контентом) */}
-        <Flex mb={6} alignItems="center">
-           <Heading as="h1" size="xl">Система обліку поранених</Heading>
-           <Spacer />
-           <Button onClick={toggleColorMode} variant="outline" size="sm">
-              {colorMode === 'light' ? '🌙 Темна' : '☀️ Світла'}
-           </Button>
-        </Flex>
-
-        {/* Маршрутизація контенту */}
+      {/* Основна Область Контенту */}
+      <Box
+        as="main" // Семантичний тег
+        flex="1" // Займає весь доступний простір праворуч
+        ml={sidebarWidth} // !!! Важливо: Додаємо лівий відступ, рівний ширині Sidebar
+        p={8} // Додаємо відступи для самого контенту
+        // Якщо контенту може бути багато, можна додати прокрутку
+        // h="100vh"
+        // overflowY="auto"
+      >
+        {/* Визначення Маршрутів залишається тут */}
         <Routes>
-          {/* Головна сторінка - Журнал */}
-          <Route path="/" element={<InjuredListPage />} />
+          {/* Головна сторінка - показує список */}
+          <Route path="/" element={<CasualtyListPage />} />
 
-          {/* Сторінка додавання нового запису */}
-          <Route path="/add" element={<AddInjuredPage />} />
+          {/* Сторінка для додавання нового запису */}
+          <Route path="/add-casualty" element={<CasualtyCard />} />
 
-          {/* Сторінка деталей конкретного пораненого */}
-          {/* :id буде динамічним параметром */}
-          <Route path="/injured/:id" element={<InjuredDetailPage />} />
+          {/* Деталі */}
+          {/* <Route path="/casualty/:id" element={<CasualtyDetailPage />} /> */}
 
-          {/* --- редагування --- */}
-          <Route path="/injured/:id/edit" element={<EditInjuredPage />} />
+          {/* Редагування */}
+          {/* <Route path="/edit-casualty/:id" element={<CasualtyCard />} /> */}
 
-          {/* Сторінка не знайдено (опціонально) */}
-          {/* <Route path="*" element={<NotFoundPage />} /> */}
-           <Route path="*" element={<Heading size="lg">Сторінку не знайдено (404)</Heading>} />
+          {/* Додамо маршрут для сторінки звітів (поки що заглушка) */}
+          <Route path="/reports" element={
+            <Box>
+              <Heading size="lg">Генерація Звітів</Heading>
+              <Text mt={4}>Ця сторінка знаходиться в розробці.</Text>
+            </Box>
+          } />
+
+          {/* Маршрут для неіснуючих сторінок (опціонально) */}
+          {/* <Route path="*" element={<div>Сторінку не знайдено (404)</div>} /> */}
         </Routes>
       </Box>
-    </Flex>
+
+    </Box>
   );
 }
 

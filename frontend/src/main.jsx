@@ -5,7 +5,6 @@ import App from './App.jsx';
 import { ChakraProvider, ColorModeScript } from '@chakra-ui/react';
 import { BrowserRouter } from 'react-router-dom';
 import theme from './config/theme'; // Import the custom theme
-import './index.css'; // Keep or remove default CSS if not needed
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
