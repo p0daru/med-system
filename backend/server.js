@@ -4,9 +4,12 @@ require('dotenv').config(); // Завантажуємо змінні з .env н�
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
-const injuredRoutes = require('./routes/injured'); // Імпортуємо маршрути
 
+const casualtyCardRoutes = require('./routes/casualtyCard.routes'); // Імпорт маршрутів
+
+// Ініціалізація Express додатку
 const app = express();
+
 const PORT = process.env.PORT || 5001; // Використовуємо порт з .env або 5001 як запасний
 const FRONTEND_DEV_URL = 'http://localhost:5173'; // Правильна URL фронтенду для розробки
 const FRONTEND_PROD_URL = 'https://p0daru.github.io'; // URL для деплою
@@ -42,7 +45,7 @@ app.get('/', (req, res) => {
 });
 
 // Підключаємо маршрути для роботи з даними про поранених
-app.use('/api/injured', injuredRoutes); // Підключаємо маршрути за префіксом /api/injured
+app.use('/api/casualty-card', casualtyCardRoutes); // Підключаємо маршрути за префіксом /api/injured
 
 
 // Запуск сервера

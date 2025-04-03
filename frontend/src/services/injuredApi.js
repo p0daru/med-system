@@ -8,7 +8,7 @@ import axios from 'axios';
 const BACKEND_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 // 2. Визначаємо конкретний шлях для "injured"
-const INJURED_API_PATH = '/api/injured';
+const INJURED_API_PATH = '/api/casualty-card';
 
 // 3. Створюємо повну URL-адресу для запитів до "injured"
 const API_ENDPOINT_URL = `${BACKEND_BASE_URL}${INJURED_API_PATH}`;
