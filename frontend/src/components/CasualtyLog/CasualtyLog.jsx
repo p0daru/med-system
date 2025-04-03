@@ -65,7 +65,6 @@ function CasualtyLog() {
     const cancelRef = useRef(); // Референс для кнопки "Скасувати" в AlertDialog
 
     // --- Data Fetching Logic ---
-    // Тепер fetchCards приймає термін як аргумент
     const fetchCards = useCallback(async (termToSearch, showToast = false) => {
         setIsLoading(true);
         setError(null);
@@ -73,7 +72,9 @@ function CasualtyLog() {
         try {
             const data = await getInjuredList(termToSearch); // Використовуємо переданий термін
             console.log("Received data from API:", data);
-            setCards(Array.isArray(data) ? data : []); // Встановлюємо дані, перевіряючи чи це масив
+            // Сортування новіші перші, якщо бекенд не сортує
+            const sortedData = Array.isArray(data) ? data.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)) : [];
+            setCards(sortedData); // Встановлюємо дані, перевіряючи чи це масив
             if (showToast) {
                  toast({ title: "Список оновлено", status: "success", duration: 1500, position: "top-right" });
             }
@@ -81,17 +82,15 @@ function CasualtyLog() {
             console.error("Failed to fetch casualty list:", err);
             const errorMessage = err.response?.data?.message || err.message || "Не вдалося завантажити дані журналу."; // Отримуємо повідомлення з відповіді API, якщо є
             setError(errorMessage);
-            // Не показуємо тост помилки при автоматичному пошуку під час введення
             if(showToast) { // Показуємо тост лише при ручному оновленні/пошуку
                toast({ title: "Помилка завантаження", description: errorMessage, status: "error", duration: 5000 });
             }
         } finally {
             setIsLoading(false);
         }
-    }, [toast]); // Видалено searchTerm із залежностей fetchCards
+    }, [toast]); // searchTerm виключено, бо він використовується в debounced
 
     // --- Debounced Fetch Function ---
-    // Створюємо debounced версію fetchCards за допомогою useMemo
     const debouncedFetchCards = useMemo(
         () => debounce((term) => {
             fetchCards(term, false); // false - не показувати тост при авто-пошуку
@@ -100,12 +99,10 @@ function CasualtyLog() {
     );
 
     // --- Effects ---
-    // Завантажуємо дані при монтуванні
     useEffect(() => {
         fetchCards(''); // Початкове завантаження без терміну
     }, [fetchCards]); // Залежність лише від fetchCards
 
-    // Викликаємо debounced функцію при зміні searchTerm
     useEffect(() => {
         debouncedFetchCards(searchTerm);
         // Функція очищення для скасування debounce
@@ -115,29 +112,24 @@ function CasualtyLog() {
     }, [searchTerm, debouncedFetchCards]); // Залежність від searchTerm та debounced функції
 
     // --- Event Handlers ---
-    // Оновлення пошукового терміну
     const handleSearchChange = (event) => {
         setSearchTerm(event.target.value);
     };
 
-    // Примусовий пошук/оновлення
     const handleRefreshOrSearch = () => {
         fetchCards(searchTerm, true); // true - показати тост
     };
 
-    // Відкриття модалки деталей
     const handleViewDetails = (card) => {
         setSelectedCardForView(card);
         onOpenViewModal();
     };
 
-    // Відкриття діалогу видалення
     const handleOpenDeleteConfirmation = (id) => {
         setCardIdToDelete(id);
         onOpenDeleteDialog();
     };
 
-    // Підтвердження та виконання видалення
     const handleConfirmDelete = async () => {
         if (!cardIdToDelete) return;
         setIsDeleting(true);
@@ -172,10 +164,8 @@ function CasualtyLog() {
                             />
                         </Tooltip>
                         <Button
-                            leftIcon={<AddIcon />}
-                            colorScheme="blue"
-                            // Використовуємо navigate для переходу на шлях '/add-casualty'
-                            onClick={() => navigate('/add-casualty')}
+                            leftIcon={<AddIcon />} colorScheme="blue"
+                            onClick={() => navigate('/casualty/new')} // Перехід на створення
                             size="sm"
                         >
                             Нова Картка
@@ -187,7 +177,7 @@ function CasualtyLog() {
                 <InputGroup size="sm">
                     <InputLeftElement pointerEvents="none" children={<SearchIcon color="gray.400" />} />
                     <Input
-                        placeholder="Пошук за ПІБ, номером картки, НСС..."
+                        placeholder="Пошук за ПІБ, ID Бійця, НСС..." // Оновлено плейсхолдер
                         value={searchTerm}
                         onChange={handleSearchChange}
                         borderRadius="md"
@@ -220,9 +210,11 @@ function CasualtyLog() {
                         <Table variant="simple" size="sm">
                             <Thead bg="gray.100">
                                 <Tr>
+                                    {/* --- Оновлені/Додані Колонки --- */}
+                                    <Th py={3} isNumeric width="50px">#</Th> {/* Додано № п/п */}
                                     <Th py={3}>ПІБ</Th>
                                     <Th py={3} textAlign="center">Стать</Th>
-                                    <Th py={3}>Номер/НСС</Th>
+                                    <Th py={3}>ID Бійця</Th> {/* Змінено заголовок */}
                                     <Th py={3}>Дата/Час Поранення</Th>
                                     <Th py={3}>Пріоритет</Th>
                                     <Th py={3} textAlign="center">Алергії</Th>
@@ -232,13 +224,17 @@ function CasualtyLog() {
                             </Thead>
                             <Tbody>
                                 {cards.length > 0 ? (
-                                    cards.map((card) => (
+                                    // Проходимо по відсортованому масиву і додаємо index
+                                    cards.map((card, index) => (
                                         <Tr key={card._id} _hover={{ bg: 'blue.50' }}>
+                                            {/* --- Оновлені/Додані Колонки --- */}
+                                            <Td isNumeric>{index + 1}</Td> {/* Відображення № п/п */}
                                             <Td fontWeight="medium" maxW="200px" isTruncated title={card.patientFullName || '-'}>
                                                 {card.patientFullName || '-'}
                                             </Td>
                                             <Td textAlign="center">{card.gender || '-'}</Td>
-                                            <Td fontFamily="mono">{card.individualNumber || card.last4SSN || '-'}</Td>
+                                            {/* Відображаємо тільки individualNumber (ID бійця) */}
+                                            <Td fontFamily="mono">{card.individualNumber || '-'}</Td>
                                             <Td>{formatLogDateTime(card.injuryDateTime)}</Td>
                                             <Td>
                                                 <Tag size="sm" colorScheme={getPriorityColorScheme(card.evacuationPriority)} variant="subtle">
@@ -259,14 +255,14 @@ function CasualtyLog() {
                                                 <HStack spacing={1} justify="flex-end">
                                                     <Tooltip label="Переглянути деталі" fontSize="xs"><IconButton icon={<ViewIcon />} aria-label="Переглянути деталі" size="xs" variant="ghost" colorScheme="cyan" onClick={() => handleViewDetails(card)} /></Tooltip>
                                                     <Tooltip label="Редагувати" fontSize="xs"><IconButton icon={<EditIcon />} aria-label="Редагувати картку" size="xs" variant="ghost" colorScheme="blue" onClick={() => navigate(`/casualty/${card._id}`)} /></Tooltip>
-                                                     <Tooltip label="Видалити" fontSize="xs"><IconButton icon={<DeleteIcon />} aria-label="Видалити картку" size="xs" variant="ghost" colorScheme="red" onClick={() => handleOpenDeleteConfirmation(card._id)} /></Tooltip>
-                                                 </HStack>
+                                                    <Tooltip label="Видалити" fontSize="xs"><IconButton icon={<DeleteIcon />} aria-label="Видалити картку" size="xs" variant="ghost" colorScheme="red" onClick={() => handleOpenDeleteConfirmation(card._id)} /></Tooltip>
+                                                </HStack>
                                             </Td>
                                         </Tr>
                                     ))
                                 ) : (
                                     <Tr>
-                                        <Td colSpan={8} textAlign="center" color="gray.500" py={10}>
+                                        <Td colSpan={9} textAlign="center" color="gray.500" py={10}> {/* Збільшено colSpan */}
                                             {searchTerm ? `Не знайдено записів для "${searchTerm}"` : "Немає жодного запису в журналі."}
                                         </Td>
                                     </Tr>
@@ -278,11 +274,14 @@ function CasualtyLog() {
             </VStack>
 
             {/* --- Модальне вікно Перегляду Деталей --- */}
-            {/* ВАЖЛИВО: Додайте сюди рендеринг інших секцій даних! */}
             <Modal isOpen={isViewModalOpen} onClose={onCloseViewModal} size="2xl" scrollBehavior="inside">
                 <ModalOverlay bg='blackAlpha.300' backdropFilter='blur(5px)'/>
                 <ModalContent>
-                    <ModalHeader>Деталі Картки: {selectedCardForView?.patientFullName || 'N/A'}</ModalHeader>
+                    {/* <ModalHeader>Боєць {selectedCardForView.individualNumber || null}
+                    <Text><Tag size="sm" colorScheme={getPriorityColorScheme(selectedCardForView.evacuationPriority)}>{selectedCardForView.evacuationPriority || '-'}</Tag></Text>
+                    </ModalHeader> */}
+                    
+                    {/* <ModalHeader>Деталі Картки: {selectedCardForView?.patientFullName || 'N/A'}</ModalHeader> */}
                     <ModalCloseButton />
                     <ModalBody pb={6}>
                         {selectedCardForView ? (
@@ -292,12 +291,14 @@ function CasualtyLog() {
                                     <Heading size="sm" mb={2}>1. Дані постраждалого</Heading>
                                     <SimpleGrid columns={{ base: 1, md: 2 }} spacing={2} fontSize="sm">
                                         <Text><strong>ПІБ:</strong> {selectedCardForView.patientFullName || '-'}</Text>
-                                        <Text><strong>Номер/НСС:</strong> {selectedCardForView.individualNumber || selectedCardForView.last4SSN || '-'}</Text>
+                                        {/* <Text><strong>ID Бійця:</strong> {selectedCardForView.individualNumber || '-'}</Text> */}
                                         <Text><strong>Стать:</strong> {selectedCardForView.gender || '-'}</Text>
                                         <Text><strong>Підрозділ:</strong> {selectedCardForView.unit || '-'}</Text>
                                         <Text><strong>Рід військ:</strong> {selectedCardForView.branchOfService || '-'}</Text>
                                         <Text><strong>Дата/час поранення:</strong> {formatLogDateTime(selectedCardForView.injuryDateTime)}</Text>
-                                        <Text><strong>Пріоритет евакуації:</strong> <Tag size="sm" colorScheme={getPriorityColorScheme(selectedCardForView.evacuationPriority)}>{selectedCardForView.evacuationPriority || '-'}</Tag></Text>
+                                        {/* <Text><strong>Пріоритет евакуації:</strong> 
+                                        <Tag size="sm" colorScheme={getPriorityColorScheme(selectedCardForView.evacuationPriority)}>{selectedCardForView.evacuationPriority || '-'}</Tag></Text> */}
+                                        {/* {selectedCardForView.last4SSN && <Text><strong>Ост. 4 НСС:</strong> {selectedCardForView.last4SSN}</Text>} */}
                                     </SimpleGrid>
                                     <Heading size="xs" mt={3} mb={1}>Алергії:</Heading>
                                     {selectedCardForView.allergies?.nka ? <Tag colorScheme="green" size="sm">Немає відомих алергій</Tag> : (
@@ -420,7 +421,7 @@ function CasualtyLog() {
                                      <Heading size="sm" mb={2}>7. Нотатки</Heading>
                                      <Text fontSize="sm" whiteSpace="pre-wrap" bg="gray.50" p={2} borderRadius="sm">{selectedCardForView.notes || <Text as="span" color="gray.500">Немає</Text>}</Text>
                                      <Divider my={3}/>
-                                     <Heading size="sm" mb={2}>8. Дані медика</Heading>
+                                     <Heading size="sm" mb={2}>8. Дані особи, що надала допомогу</Heading>
                                      <Text fontSize="sm"><strong>ПІБ:</strong> {selectedCardForView.providerFullName || '-'}</Text>
                                      <Text fontSize="sm"><strong>НСС:</strong> {selectedCardForView.providerLast4SSN || '-'}</Text>
                                      <Divider my={3}/>
@@ -428,7 +429,7 @@ function CasualtyLog() {
                                      <Text fontSize="xs"><strong>Створено:</strong> {formatLogDateTime(selectedCardForView.createdAt)}</Text>
                                      <Text fontSize="xs"><strong>Оновлено:</strong> {formatLogDateTime(selectedCardForView.updatedAt)}</Text>
                                      <Text fontSize="xs"><strong>Записав:</strong> {selectedCardForView.recordedBy || '-'}</Text>
-                                     <Text fontSize="xs"><strong>ID Запису:</strong> {selectedCardForView._id}</Text> {/* Додано ID */}
+                                     <Text fontSize="xs"><strong>ID Запису:</strong> {selectedCardForView._id}</Text>
                                 </Box>
 
                             </VStack>
@@ -440,9 +441,7 @@ function CasualtyLog() {
                         )}
                     </ModalBody>
                     <ModalFooter borderTopWidth="1px" borderColor="gray.200" pt={3}>
-                        <Button colorScheme='gray' variant='outline' mr={3} onClick={onCloseViewModal} size="sm">
-                            Закрити
-                        </Button>
+                        <Button colorScheme='gray' variant='outline' mr={3} onClick={onCloseViewModal} size="sm">Закрити</Button>
                         {selectedCardForView && (
                             <Button colorScheme='blue' variant='solid' onClick={() => { onCloseViewModal(); navigate(`/casualty/${selectedCardForView._id}`); }} size="sm">Редагувати</Button>
                         )}
