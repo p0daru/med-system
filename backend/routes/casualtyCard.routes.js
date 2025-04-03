@@ -47,6 +47,7 @@ router.post('/', async (req, res) => {
     }
 });
 
+
 // --- GET /api/casualty-cards/ --- Отримання списку карток
 router.get('/', async (req, res) => {
     try {
