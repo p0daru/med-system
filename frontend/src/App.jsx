@@ -5,7 +5,6 @@ import { Box, Container, Heading, Flex, Link as ChakraLink, Spacer } from '@chak
 
 // Імпортуємо ваші сторінки/компоненти
 import CasualtyCard from './components/CasualtyCard/CasualtyCard';
-import CasualtyListPage from './pages/CasualtyListPage'; 
 import CasualtyLog from './components/CasualtyLog/CasualtyLog';
 // import CasualtyDetailPage from './pages/CasualtyDetailPage';
 import Sidebar from './components/Sidebar/Sidebar'; 

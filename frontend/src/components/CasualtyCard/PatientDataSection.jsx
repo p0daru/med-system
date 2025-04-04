@@ -4,12 +4,13 @@ import {
     Box, SimpleGrid, FormControl, FormLabel, Input, Select, RadioGroup, Radio, Stack, Checkbox, CheckboxGroup, Textarea, Text, VStack, Divider, Heading
 } from '@chakra-ui/react';
 
-// Імпортуємо всі константи з JSON файлу
+// Import styles
+import { patientDataStyles, commonStyles } from './casualtyCardStyles';
 import constants from '../../constants/constants.json';
 
 function PatientDataSection({ data, setFormData, isDisabled }) {
 
-    // Використовуємо списки з імпортованого об'єкта constants
+    // Use lists from the imported constants object
     const allergensList = constants.commonAllergens;
     const branchesOfServiceList = constants.branchesOfService;
     const evacuationPrioritiesList = constants.evacuationPriorities;
@@ -34,10 +35,10 @@ function PatientDataSection({ data, setFormData, isDisabled }) {
         const isChecked = e.target.checked;
         setFormData(prevData => {
             const currentAllergies = prevData.allergies || {};
-            // Важливо: використовуємо allergensList (отриманий з constants) тут
+            // Important: use allergensList (from constants) here
             const newKnown = isChecked ? Object.fromEntries(allergensList.map(a => [a, false])) : {};
             const newOther = isChecked ? '' : (currentAllergies.other || '');
-            // ... решта логіки
+            // ... rest of the logic
             return {
                 ...prevData,
                 allergies: {
@@ -48,7 +49,7 @@ function PatientDataSection({ data, setFormData, isDisabled }) {
                 }
             };
         });
-   }, [setFormData, allergensList]); // Додаємо allergensList до залежностей useCallback
+   }, [setFormData, allergensList]); // Add allergensList to useCallback dependencies
 
     const handleKnownAllergyChange = useCallback((allergen) => {
         setFormData(prevData => {
@@ -76,23 +77,51 @@ function PatientDataSection({ data, setFormData, isDisabled }) {
 
     return (
         <Box>
-            <Heading size="sm" mb={3} borderBottomWidth={1} pb={1} borderColor="gray.200">
+            {/* Apply section heading style */}
+            <Heading {...patientDataStyles.section1Heading}>
                 1. Дані Постраждалого
             </Heading>
 
-            <SimpleGrid columns={{ base: 1, sm: 2, md: 3 }} spacing={4} mb={4}>
-            <FormControl id="patientFullName" isRequired>
-                     <FormLabel fontSize="sm" mb={1}>ПІБ <Text as="span" color="red.500">*</Text></FormLabel>
-                     <Input name="patientFullName" size="sm" value={data.patientFullName || ''} onChange={handleChange} isDisabled={isDisabled} placeholder="Прізвище Ім'я" autoComplete="name" />
+            {/* Apply patient info grid style */}
+            <SimpleGrid {...patientDataStyles.patientInfoGrid}>
+                 <FormControl id="patientFullName" isRequired>
+                     {/* Apply label style and required asterisk style */}
+                     <FormLabel {...patientDataStyles.label}>
+                         ПІБ <Text {...commonStyles.requiredAsterisk}>*</Text>
+                     </FormLabel>
+                     {/* Apply input style */}
+                     <Input
+                         {...commonStyles.inputSm}
+                         name="patientFullName"
+                         value={data.patientFullName || ''}
+                         onChange={handleChange}
+                         isDisabled={isDisabled}
+                         placeholder="Прізвище Ім'я"
+                         autoComplete="name"
+                     />
                  </FormControl>
                  <FormControl id="last4SSN">
-                     <FormLabel fontSize="sm" mb={1}>Останні 4 НСС</FormLabel>
-                     <Input name="last4SSN" size="sm" value={data.last4SSN || ''} onChange={handleNumericChange} isDisabled={isDisabled} maxLength={4} inputMode="numeric" placeholder="1234" />
+                      {/* Apply label style */}
+                     <FormLabel {...patientDataStyles.label}>Останні 4 НСС</FormLabel>
+                     {/* Apply input style */}
+                     <Input
+                         {...commonStyles.inputSm}
+                         name="last4SSN"
+                         value={data.last4SSN || ''}
+                         onChange={handleNumericChange}
+                         isDisabled={isDisabled}
+                         maxLength={4}
+                         inputMode="numeric"
+                         placeholder="1234"
+                     />
                  </FormControl>
                  <FormControl id="gender">
-                     <FormLabel fontSize="sm" mb={1}>Стать</FormLabel>
+                      {/* Apply label style */}
+                     <FormLabel {...patientDataStyles.label}>Стать</FormLabel>
                      <RadioGroup onChange={handleGenderChange} value={data.gender || ''} isDisabled={isDisabled}>
-                         <Stack direction='row' spacing={4}>
+                         {/* Apply gender radio stack style */}
+                         <Stack {...patientDataStyles.genderRadioStack}>
+                             {/* Keep size prop for Radio as it's simple */}
                              <Radio value='Ч' size="sm">Чол</Radio>
                              <Radio value='Ж' size="sm">Жін</Radio>
                          </Stack>
@@ -100,9 +129,17 @@ function PatientDataSection({ data, setFormData, isDisabled }) {
                  </FormControl>
 
                 <FormControl id="branchOfService">
-                    <FormLabel fontSize="sm" mb={1}>Рід військ/Служба</FormLabel>
-                    {/* Використовуємо branchesOfServiceList */}
-                    <Select name="branchOfService" size="sm" value={data.branchOfService || ''} onChange={handleChange} isDisabled={isDisabled} placeholder="Оберіть...">
+                     {/* Apply label style */}
+                    <FormLabel {...patientDataStyles.label}>Рід військ</FormLabel>
+                    {/* Apply input style (for Select) */}
+                    <Select
+                        {...commonStyles.inputSm}
+                        name="branchOfService"
+                        value={data.branchOfService || ''}
+                        onChange={handleChange}
+                        isDisabled={isDisabled}
+                        placeholder="Оберіть..."
+                    >
                         {branchesOfServiceList.map(branch => (
                             <option key={branch} value={branch}>{branch}</option>
                         ))}
@@ -111,11 +148,14 @@ function PatientDataSection({ data, setFormData, isDisabled }) {
 
                 {showBranchOtherInput && (
                     <FormControl id="branchOfServiceOther" isRequired>
-                       {/* ... (Input для "Інше" роду військ) ... */}
-                       <FormLabel fontSize="sm" mb={1}>Вкажіть рід військ/службу <Text as="span" color="red.500">*</Text></FormLabel>
+                        {/* Apply label style and required asterisk style */}
+                       <FormLabel {...patientDataStyles.label}>
+                           Вкажіть рід військ <Text {...commonStyles.requiredAsterisk}>*</Text>
+                       </FormLabel>
+                       {/* Apply input style */}
                         <Input
+                            {...commonStyles.inputSm}
                             name="branchOfServiceOther"
-                            size="sm"
                             value={data.branchOfServiceOther || ''}
                             onChange={handleChange}
                             isDisabled={isDisabled}
@@ -125,29 +165,70 @@ function PatientDataSection({ data, setFormData, isDisabled }) {
                 )}
 
                  <FormControl id="unit" gridColumn={showBranchOtherInput ? 'auto' : {md: 'span 1'}}>
-                   {/* ... (Input для Підрозділ) ... */}
-                   <FormLabel fontSize="sm" mb={1}>Підрозділ</FormLabel>
-                    <Input name="unit" size="sm" value={data.unit || ''} onChange={handleChange} isDisabled={isDisabled} placeholder="Напр., 1 Бат., Рота 'Альфа'" />
+                    {/* Apply label style */}
+                   <FormLabel {...patientDataStyles.label}>Підрозділ</FormLabel>
+                   {/* Apply input style */}
+                    <Input
+                        {...commonStyles.inputSm}
+                        name="unit"
+                        value={data.unit || ''}
+                        onChange={handleChange}
+                        isDisabled={isDisabled}
+                        placeholder="Напр., 1 Бат., Рота 'Альфа'"
+                    />
                  </FormControl>
             </SimpleGrid>
 
-            <Divider my={4} />
+            {/* Apply common divider style */}
+            <Divider sx={commonStyles.divider} />
 
-            <SimpleGrid columns={{ base: 1, sm: 2, md: 3 }} spacing={4} mb={4}>
-                 {/* ... (Дата, Час поранення) ... */}
+            {/* Reuse patient info grid style for layout consistency */}
+            <SimpleGrid {...patientDataStyles.patientInfoGrid}>
                  <FormControl id="injuryDate" isRequired>
-                     <FormLabel fontSize="sm" mb={1}>Дата поранення <Text as="span" color="red.500">*</Text></FormLabel>
-                     <Input type="date" size="sm" name="injuryDate" value={data.injuryDate || ''} onChange={handleChange} isDisabled={isDisabled} max={new Date().toISOString().split("T")[0]} />
+                      {/* Apply label style and required asterisk style */}
+                     <FormLabel {...patientDataStyles.label}>
+                         Дата поранення <Text {...commonStyles.requiredAsterisk}>*</Text>
+                     </FormLabel>
+                     {/* Apply input style */}
+                     <Input
+                         {...commonStyles.inputSm}
+                         type="date"
+                         name="injuryDate"
+                         value={data.injuryDate || ''}
+                         onChange={handleChange}
+                         isDisabled={isDisabled}
+                         max={new Date().toISOString().split("T")[0]}
+                     />
                  </FormControl>
                  <FormControl id="injuryTime" isRequired>
-                     <FormLabel fontSize="sm" mb={1}>Час поранення <Text as="span" color="red.500">*</Text></FormLabel>
-                     <Input type="time" size="sm" name="injuryTime" value={data.injuryTime || ''} onChange={handleChange} isDisabled={isDisabled} pattern="[0-9]{2}:[0-9]{2}" />
+                      {/* Apply label style and required asterisk style */}
+                     <FormLabel {...patientDataStyles.label}>
+                         Час поранення <Text {...commonStyles.requiredAsterisk}>*</Text>
+                     </FormLabel>
+                      {/* Apply input style */}
+                     <Input
+                         {...commonStyles.inputSm}
+                         type="time"
+                         name="injuryTime"
+                         value={data.injuryTime || ''}
+                         onChange={handleChange}
+                         isDisabled={isDisabled}
+                         pattern="[0-9]{2}:[0-9]{2}"
+                     />
                  </FormControl>
 
                  <FormControl id="evacuationPriority">
-                    <FormLabel fontSize="sm" mb={1}>Пріоритет евакуації</FormLabel>
-                    {/* Використовуємо evacuationPrioritiesList */}
-                    <Select size="sm" name="evacuationPriority" value={data.evacuationPriority || ''} onChange={handleChange} isDisabled={isDisabled} placeholder="Оберіть...">
+                    {/* Apply label style */}
+                    <FormLabel {...patientDataStyles.label}>Пріоритет евакуації</FormLabel>
+                    {/* Apply input style (for Select) */}
+                    <Select
+                        {...commonStyles.inputSm}
+                        name="evacuationPriority"
+                        value={data.evacuationPriority || ''}
+                        onChange={handleChange}
+                        isDisabled={isDisabled}
+                        placeholder="Оберіть..."
+                    >
                         {evacuationPrioritiesList.map(priority => (
                             <option key={priority} value={priority}>{priority}</option>
                         ))}
@@ -155,32 +236,64 @@ function PatientDataSection({ data, setFormData, isDisabled }) {
                 </FormControl>
             </SimpleGrid>
 
-            <Divider my={4} />
+            {/* Apply common divider style */}
+            <Divider sx={commonStyles.divider} />
 
+            {/* Keep gridColumn inline as it's layout specific */}
             <FormControl id="allergies" gridColumn="1 / -1">
-                 <FormLabel fontSize="md" mb={2} fontWeight="medium">Алергії</FormLabel>
-                 <Box borderWidth={1} borderRadius="md" p={4} borderColor="gray.200">
-                     <VStack align="stretch" spacing={3}>
-                         {/* ... (Чекбокс NKA) ... */}
-                         <Checkbox isChecked={!!allergiesData.nka} onChange={handleNkaChange} isDisabled={isDisabled} colorScheme="green" size="md">
-                             <Text fontWeight="bold" fontSize="sm">Немає відомих алергій (НВА / NKA)</Text>
+                 {/* Apply allergies label style */}
+                 <FormLabel {...patientDataStyles.allergiesLabel}>Алергії</FormLabel>
+                 {/* Apply allergies container box style */}
+                 <Box {...patientDataStyles.allergiesContainerBox}>
+                     {/* Apply allergies VStack style */}
+                     <VStack {...patientDataStyles.allergiesVStack}>
+                          {/* Apply NKA checkbox style */}
+                         <Checkbox
+                             {...patientDataStyles.nkaCheckbox}
+                             isChecked={!!allergiesData.nka}
+                             onChange={handleNkaChange}
+                             isDisabled={isDisabled}
+                         >
+                              {/* Apply NKA label text style */}
+                             <Text {...patientDataStyles.nkaLabelText}>
+                                 Немає відомих алергій (НВА / NKA)
+                             </Text>
                          </Checkbox>
+                         {/* Basic divider, no extra margin needed here */}
                          <Divider />
-                         <Text fontSize="sm" fontWeight="medium" color={allergiesData.nka ? "gray.400" : "gray.700"}>Або вкажіть відомі:</Text>
-                         <Box pl={2}>
+                          {/* Apply known allergies label text style, keep conditional color inline */}
+                         <Text
+                             {...patientDataStyles.knownAllergiesLabelText}
+                             color={allergiesData.nka ? "gray.400" : "gray.700"}
+                         >
+                             Або вкажіть відомі:
+                         </Text>
+                          {/* Apply known allergies box style (padding) */}
+                         <Box {...patientDataStyles.knownAllergiesBox}>
                              <CheckboxGroup isDisabled={isDisabled || !!allergiesData.nka}>
-                                 <SimpleGrid columns={{ base: 2, sm: 3, md: 4, lg: 5 }} spacingX={4} spacingY={1.5}>
-                                     {/* Використовуємо allergensList */}
+                                 {/* Apply known allergens grid style */}
+                                 <SimpleGrid {...patientDataStyles.knownAllergensGrid}>
                                      {allergensList.map(allergen => (
-                                         <Checkbox key={allergen} isChecked={!!allergiesData.known?.[allergen]} onChange={() => handleKnownAllergyChange(allergen)} size="sm">
+                                         <Checkbox
+                                             key={allergen}
+                                             {...patientDataStyles.knownAllergenCheckbox} // Apply known allergen checkbox style
+                                             isChecked={!!allergiesData.known?.[allergen]}
+                                             onChange={() => handleKnownAllergyChange(allergen)}
+                                         >
                                              {allergen}
                                          </Checkbox>
                                      ))}
                                  </SimpleGrid>
                              </CheckboxGroup>
                          </Box>
-                         {/* ... (Textarea для інших алергій) ... */}
-                         <Textarea placeholder="Інші алергії або деталі (напр., реакція...)" value={allergiesData.other || ''} onChange={handleOtherAllergyChange} isDisabled={isDisabled || !!allergiesData.nka} size="sm" rows={2} mt={1} />
+                         {/* Apply other allergies textarea style */}
+                         <Textarea
+                             {...patientDataStyles.otherAllergiesTextarea}
+                             placeholder="Інші алергії або деталі (напр., реакція...)"
+                             value={allergiesData.other || ''}
+                             onChange={handleOtherAllergyChange}
+                             isDisabled={isDisabled || !!allergiesData.nka}
+                         />
                      </VStack>
                  </Box>
             </FormControl>

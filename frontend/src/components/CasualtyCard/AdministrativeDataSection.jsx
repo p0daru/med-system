@@ -1,6 +1,7 @@
 // src/components/CasualtyCard/AdministrativeDataSection.jsx
 import React, { useCallback } from 'react'; // Імпортуємо useCallback
 import { Box, Heading, VStack, SimpleGrid, FormControl, FormLabel, Input, Textarea, Text } from '@chakra-ui/react';
+import { adminDataStyles, commonStyles } from './casualtyCardStyles'; 
 
 function AdministrativeDataSection({ data, setFormData, isDisabled }) {
 
@@ -41,103 +42,103 @@ function AdministrativeDataSection({ data, setFormData, isDisabled }) {
       return 'Помилка';
     }
   };
-
   return (
     <Box>
-         {/* Розділ 7: Нотатки */}
-         <FormControl id="notes" mb={6}> {/* Додано відступ знизу */}
-            <FormLabel fontSize="sm">7. Нотатки</FormLabel>
-            <Textarea
-                name="notes"
-                value={data?.notes || ''} // Безпечний доступ
-                onChange={handleChange}
-                isDisabled={isDisabled}
-                placeholder="Додаткова інформація, роз'яснення, динаміка стану..."
-                rows={4}
-            />
+      {/* Section 7: Notes */}
+      <FormControl {...adminDataStyles.notesControl}>
+        <FormLabel {...adminDataStyles.label}>7. Нотатки</FormLabel> {/* Use label style */}
+        <Textarea
+          name="notes"
+          value={data?.notes || ''}
+          onChange={handleChange}
+          isDisabled={isDisabled}
+          placeholder="Додаткова інформація..."
+          rows={4}
+        />
+      </FormControl>
+
+      {/* Section 8: Provider Data */}
+      <Heading {...adminDataStyles.section8Heading}>8. Дані Особи, яка надала допомогу</Heading>
+      <SimpleGrid {...adminDataStyles.providerGrid}>
+        <FormControl id="providerFullName">
+          <FormLabel {...adminDataStyles.label}>ПІБ (Прізвище, Ім'я)</FormLabel> {/* Use label style */}
+          <Input
+            name="providerFullName"
+            value={data?.providerFullName || ''}
+            onChange={handleChange}
+            isDisabled={isDisabled}
+            placeholder="Іваненко Іван"
+            autoComplete="name"
+            {...commonStyles.inputSm} // Use common style
+          />
         </FormControl>
+        <FormControl id="providerLast4SSN">
+          <FormLabel {...adminDataStyles.label}>Останні 4 НСС</FormLabel> {/* Use label style */}
+          <Input
+            name="providerLast4SSN"
+            value={data?.providerLast4SSN || ''}
+            onChange={handleSsnChange}
+            isDisabled={isDisabled}
+            placeholder="1234"
+            maxLength={4}
+            inputMode="numeric"
+             {...commonStyles.inputSm} // Use common style
+          />
+        </FormControl>
+      </SimpleGrid>
 
-        {/* Розділ 8: Дані особи, яка надала допомогу */}
-        <Heading size="sm" mb={2}>8. Дані Особи, яка надала допомогу</Heading>
-         <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4} mb={6}> {/* Додано відступ знизу */}
-             <FormControl id="providerFullName">
-                 <FormLabel fontSize="sm">ПІБ (Прізвище, Ім'я)</FormLabel>
-                 <Input
-                     name="providerFullName"
-                     value={data?.providerFullName || ''} // Безпечний доступ
-                     onChange={handleChange}
-                     isDisabled={isDisabled}
-                     placeholder="Іваненко Іван"
-                     autoComplete="name" // Підказка для автозаповнення
-                 />
-             </FormControl>
-             <FormControl id="providerLast4SSN">
-                 <FormLabel fontSize="sm">Останні 4 НСС</FormLabel>
-                 <Input
-                     name="providerLast4SSN"
-                     value={data?.providerLast4SSN || ''} // Безпечний доступ
-                     // Використовуємо спеціальний обробник для НСС
-                     onChange={handleSsnChange}
-                     isDisabled={isDisabled}
-                     placeholder="1234"
-                     maxLength={4} // Залишаємо для візуального обмеження
-                     // pattern="\d{4}" // Патерн корисний для нативної валідації, але handleSsnChange гарантує цифри
-                     inputMode="numeric" // Підказка для мобільної клавіатури
-                 />
-             </FormControl>
-         </SimpleGrid>
+      {/* Administrative Info */}
+      <Heading {...adminDataStyles.adminInfoHeading}>Адміністративна Інформація</Heading>
+      <VStack {...adminDataStyles.adminInfoVStack}>
+        <SimpleGrid {...adminDataStyles.timestampsGrid}>
+          {/* Recorded By */}
+          <FormControl id="recordedBy">
+            <FormLabel {...adminDataStyles.label}>Запис створив/редагував</FormLabel>
+            <Input
+              type="text"
+              name="recordedBy"
+              value={data?.recordedBy || 'Автоматично'}
+              isReadOnly
+              isDisabled // Visually disabled
+              _disabled={commonStyles.disabledInput} // Apply disabled style from common
+              placeholder="Користувач системи"
+               {...commonStyles.inputSm}
+            />
+          </FormControl>
 
-        {/* Адміністративна інформація про запис картки */}
-        <Heading size="sm" mb={2}>Адміністративна Інформація</Heading>
-        <VStack spacing={4} align="stretch">
-            <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
-                {/* Поле "Запис створив/редагував" часто заповнюється автоматично системою */}
-                <FormControl id="recordedBy">
-                    <FormLabel fontSize="sm">Запис створив/редагував</FormLabel>
-                    <Input
-                        type="text"
-                        name="recordedBy"
-                        value={data?.recordedBy || 'Автоматично'} // Показуємо 'Автоматично', якщо поле порожнє
-                        isReadOnly // Робимо поле тільки для читання
-                        isDisabled // І візуально неактивним
-                        _disabled={{ bg: "gray.100", color: "gray.700", cursor: "not-allowed", opacity: 0.8 }} // Стилізація для isDisabled
-                        placeholder="Користувач системи"
-                    />
+          {/* Timestamps */}
+          {(data?.createdAt || data?.updatedAt) && (
+            <>
+              {data?.createdAt && (
+                <FormControl>
+                  <FormLabel {...adminDataStyles.label}>Час Створення Запису</FormLabel>
+                  <Input
+                    type="text"
+                    value={formatDateTime(data.createdAt)}
+                    isReadOnly
+                    isDisabled
+                    _disabled={commonStyles.disabledInput} // Apply disabled style
+                     {...commonStyles.inputSm}
+                  />
                 </FormControl>
-
-                 {/* Поля для відображення часу створення/оновлення (тільки для читання) */}
-                 {/* Перевіряємо наявність дат перед відображенням */}
-                {(data?.createdAt || data?.updatedAt) && ( // Показувати блок лише якщо є хоча б одна дата
-                    <>
-                        {data?.createdAt && (
-                            <FormControl>
-                                <FormLabel fontSize="sm">Час Створення Запису</FormLabel>
-                                <Input
-                                    type="text"
-                                    value={formatDateTime(data.createdAt)}
-                                    isReadOnly
-                                    isDisabled
-                                    _disabled={{ bg: "gray.100", color: "gray.700", cursor: "not-allowed", opacity: 0.8 }}
-                                />
-                            </FormControl>
-                        )}
-                        {/* Показувати час оновлення, лише якщо він існує */}
-                        {data?.updatedAt && (
-                            <FormControl>
-                                <FormLabel fontSize="sm">Час Останнього Оновлення</FormLabel>
-                                <Input
-                                    type="text"
-                                    value={formatDateTime(data.updatedAt)}
-                                    isReadOnly
-                                    isDisabled
-                                    _disabled={{ bg: "gray.100", color: "gray.700", cursor: "not-allowed", opacity: 0.8 }}
-                                />
-                            </FormControl>
-                        )}
-                    </>
-                )}
-            </SimpleGrid>
-        </VStack>
+              )}
+              {data?.updatedAt && (
+                 <FormControl>
+                  <FormLabel {...adminDataStyles.label}>Час Останнього Оновлення</FormLabel>
+                  <Input
+                    type="text"
+                    value={formatDateTime(data.updatedAt)}
+                    isReadOnly
+                    isDisabled
+                     _disabled={commonStyles.disabledInput} // Apply disabled style
+                     {...commonStyles.inputSm}
+                  />
+                </FormControl>
+              )}
+            </>
+          )}
+        </SimpleGrid>
+      </VStack>
     </Box>
   );
 }

@@ -3,13 +3,16 @@ import React from 'react';
 import {
     Box, Heading, VStack, SimpleGrid, FormControl, FormLabel, Input, Select, Button, IconButton, HStack, Text, Divider, Tooltip
 } from '@chakra-ui/react';
-import { AddIcon, DeleteIcon, TimeIcon } from '@chakra-ui/icons'; // Додано TimeIcon
+import { AddIcon, DeleteIcon, TimeIcon } from '@chakra-ui/icons';
+
+// Import styles
+import { vitalSignsStyles, commonStyles } from './casualtyCardStyles';
 
 function VitalSignsSection({ data, setFormData, isDisabled }) {
 
     const vitalSignsData = Array.isArray(data?.vitalSigns) ? data.vitalSigns : [];
 
-    // Допоміжна функція отримання поточного часу HH:MM
+    // Helper function to get current time HH:MM
     const getCurrentTime = () => new Date().toTimeString().slice(0, 5);
 
     const handleVitalChange = (id, field, value) => {
@@ -30,7 +33,7 @@ function VitalSignsSection({ data, setFormData, isDisabled }) {
                     ...currentVitals,
                     {
                         id: crypto.randomUUID(),
-                        time: getCurrentTime(), // Автоматично ставимо поточний час
+                        time: getCurrentTime(), // Automatically set current time
                         pulse: '', bp: '', rr: '', spO2: '', avpu: '', pain: ''
                     }
                 ]
@@ -45,19 +48,20 @@ function VitalSignsSection({ data, setFormData, isDisabled }) {
         }));
     };
 
-    // Опції для випадаючих списків
+    // Options for dropdowns
     const avpuOptions = ['', 'A', 'V', 'P', 'U'];
     const painOptions = ['', ...Array.from({ length: 11 }, (_, i) => i.toString())]; // 0-10
 
     return (
         <Box>
-            <HStack justify="space-between" mb={2}>
-                <Heading size="sm">3. Симптоми та Ознаки</Heading>
+            {/* Apply heading HStack style */}
+            <HStack {...vitalSignsStyles.headingHStack}>
+                {/* Apply section heading style */}
+                <Heading {...vitalSignsStyles.section4Heading}>3. Симптоми та Ознаки</Heading>
+                 {/* Apply add vital button style */}
                  <Button
+                    {...vitalSignsStyles.addVitalButton}
                     leftIcon={<AddIcon />}
-                    colorScheme="teal"
-                    variant="outline"
-                    size="xs" // Менший розмір кнопки
                     onClick={addVitalRow}
                     isDisabled={isDisabled}
                  >
@@ -66,60 +70,82 @@ function VitalSignsSection({ data, setFormData, isDisabled }) {
             </HStack>
 
 
-            {/* Записи показників */}
-            <VStack spacing={3} align="stretch" divider={<Divider />}>
+            {/* Vital sign entries */}
+            {/* Apply vital list VStack style, keep divider inline */}
+            <VStack {...vitalSignsStyles.vitalListVStack} divider={<Divider />}>
                  {vitalSignsData.length === 0 && !isDisabled && (
-                    <Text color="gray.500" fontSize="sm" textAlign="center" p={2}>Натисніть "+ Додати Запис".</Text>
+                    // Apply no entries text style
+                    <Text {...vitalSignsStyles.noEntriesText}>Натисніть "+ Додати Запис".</Text>
                  )}
                 {vitalSignsData.map((vitalEntry) => (
-                    <Box key={vitalEntry.id} py={2}>
-                         <SimpleGrid columns={{ base: 2, sm: 4, md: 8 }} spacing={2} alignItems="center">
-                            {/* Час */}
+                    // Apply vital row box style
+                    <Box key={vitalEntry.id} {...vitalSignsStyles.vitalRowBox}>
+                         {/* Apply vital fields grid style */}
+                         <SimpleGrid {...vitalSignsStyles.vitalFieldsGrid}>
+                            {/* Time */}
                             <FormControl id={`time-${vitalEntry.id}`} gridColumn={{ base: "span 2", sm: "span 1" }}>
-                                 <HStack spacing={1}>
-                                    <Input pt="5px" type="time" size="sm" value={vitalEntry.time || ''} onChange={(e) => handleVitalChange(vitalEntry.id, 'time', e.target.value)} isDisabled={isDisabled} pattern="[0-9]{2}:[0-9]{2}" />
-                                     <Tooltip label="Поточний час" fontSize="xs">
-                                         <IconButton aria-label="Set current time" size="xs" icon={<TimeIcon />} onClick={() => handleVitalChange(vitalEntry.id, 'time', getCurrentTime())} isDisabled={isDisabled} variant="outline"/>
+                                 {/* Apply time input HStack style */}
+                                 <HStack {...vitalSignsStyles.timeInputHStack}>
+                                    {/* Apply common input style */}
+                                    <Input pt="5px" type="time" {...commonStyles.inputSm} value={vitalEntry.time || ''} onChange={(e) => handleVitalChange(vitalEntry.id, 'time', e.target.value)} isDisabled={isDisabled} pattern="[0-9]{2}:[0-9]{2}" />
+                                     {/* Apply common tooltip style */}
+                                     <Tooltip label="Поточний час" {...commonStyles.tooltipXs}>
+                                         {/* Apply current time button style */}
+                                         <IconButton aria-label="Set current time" {...commonStyles.currentTimeButton} icon={<TimeIcon />} onClick={() => handleVitalChange(vitalEntry.id, 'time', getCurrentTime())} isDisabled={isDisabled}/>
                                      </Tooltip>
                                  </HStack>
                             </FormControl>
-                             {/* Пульс */}
+                             {/* Pulse */}
                              <FormControl id={`pulse-${vitalEntry.id}`} gridColumn={{ base: "span 1" }}>
-                                 <FormLabel fontSize="xs" mb={0} ml={1}>Пульс</FormLabel>
-                                 <Input name="pulse" size="sm" value={vitalEntry.pulse || ''} onChange={(e) => handleVitalChange(vitalEntry.id, 'pulse', e.target.value)} isDisabled={isDisabled} placeholder="чсс" />
+                                 {/* Apply vital label style */}
+                                 <FormLabel {...vitalSignsStyles.vitalLabel}>Пульс</FormLabel>
+                                 {/* Apply common input style */}
+                                 <Input {...commonStyles.inputSm} name="pulse" value={vitalEntry.pulse || ''} onChange={(e) => handleVitalChange(vitalEntry.id, 'pulse', e.target.value)} isDisabled={isDisabled} placeholder="чсс" />
                              </FormControl>
-                            {/* АТ */}
+                            {/* BP */}
                              <FormControl id={`bp-${vitalEntry.id}`} gridColumn={{ base: "span 1" }}>
-                                 <FormLabel fontSize="xs" mb={0} ml={1}>АТ</FormLabel>
-                                 <Input name="bp" size="sm" value={vitalEntry.bp || ''} onChange={(e) => handleVitalChange(vitalEntry.id, 'bp', e.target.value)} isDisabled={isDisabled} placeholder="120/80" />
+                                 {/* Apply vital label style */}
+                                 <FormLabel {...vitalSignsStyles.vitalLabel}>АТ</FormLabel>
+                                 {/* Apply common input style */}
+                                 <Input {...commonStyles.inputSm} name="bp" value={vitalEntry.bp || ''} onChange={(e) => handleVitalChange(vitalEntry.id, 'bp', e.target.value)} isDisabled={isDisabled} placeholder="120/80" />
                              </FormControl>
-                            {/* ЧД */}
+                            {/* RR */}
                              <FormControl id={`rr-${vitalEntry.id}`} gridColumn={{ base: "span 1" }}>
-                                 <FormLabel fontSize="xs" mb={0} ml={1}>ЧД</FormLabel>
-                                 <Input name="rr" size="sm" value={vitalEntry.rr || ''} onChange={(e) => handleVitalChange(vitalEntry.id, 'rr', e.target.value)} isDisabled={isDisabled} placeholder="чд" />
+                                  {/* Apply vital label style */}
+                                 <FormLabel {...vitalSignsStyles.vitalLabel}>ЧД</FormLabel>
+                                  {/* Apply common input style */}
+                                 <Input {...commonStyles.inputSm} name="rr" value={vitalEntry.rr || ''} onChange={(e) => handleVitalChange(vitalEntry.id, 'rr', e.target.value)} isDisabled={isDisabled} placeholder="чд" />
                              </FormControl>
                             {/* SpO2 */}
                              <FormControl id={`spO2-${vitalEntry.id}`} gridColumn={{ base: "span 1" }}>
-                                <FormLabel fontSize="xs" mb={0} ml={1}>SpO2%</FormLabel>
-                                <Input name="spO2" size="sm" value={vitalEntry.spO2 || ''} onChange={(e) => handleVitalChange(vitalEntry.id, 'spO2', e.target.value)} isDisabled={isDisabled} placeholder="%" />
+                                {/* Apply vital label style */}
+                                <FormLabel {...vitalSignsStyles.vitalLabel}>SpO2%</FormLabel>
+                                {/* Apply common input style */}
+                                <Input {...commonStyles.inputSm} name="spO2" value={vitalEntry.spO2 || ''} onChange={(e) => handleVitalChange(vitalEntry.id, 'spO2', e.target.value)} isDisabled={isDisabled} placeholder="%" />
                              </FormControl>
                             {/* AVPU */}
                              <FormControl id={`avpu-${vitalEntry.id}`} gridColumn={{ base: "span 1" }}>
-                                <FormLabel fontSize="xs" mb={0} ml={1}>AVPU</FormLabel>
-                                <Select name="avpu" size="sm" value={vitalEntry.avpu || ''} onChange={(e) => handleVitalChange(vitalEntry.id, 'avpu', e.target.value)} isDisabled={isDisabled}>
+                                {/* Apply vital label style */}
+                                <FormLabel {...vitalSignsStyles.vitalLabel}>AVPU</FormLabel>
+                                {/* Apply common input style (for Select) */}
+                                <Select {...commonStyles.inputSm} name="avpu" value={vitalEntry.avpu || ''} onChange={(e) => handleVitalChange(vitalEntry.id, 'avpu', e.target.value)} isDisabled={isDisabled}>
                                     {avpuOptions.map(opt => <option key={`avpu-${opt}`} value={opt}>{opt || '–'}</option>)}
                                 </Select>
                              </FormControl>
-                            {/* Біль */}
+                            {/* Pain */}
                              <FormControl id={`pain-${vitalEntry.id}`} gridColumn={{ base: "span 1" }}>
-                                <FormLabel fontSize="xs" mb={0} ml={1}>Біль</FormLabel>
-                                <Select name="pain" size="sm" value={vitalEntry.pain || ''} onChange={(e) => handleVitalChange(vitalEntry.id, 'pain', e.target.value)} isDisabled={isDisabled}>
+                                {/* Apply vital label style */}
+                                <FormLabel {...vitalSignsStyles.vitalLabel}>Біль</FormLabel>
+                                {/* Apply common input style (for Select) */}
+                                <Select {...commonStyles.inputSm} name="pain" value={vitalEntry.pain || ''} onChange={(e) => handleVitalChange(vitalEntry.id, 'pain', e.target.value)} isDisabled={isDisabled}>
                                     {painOptions.map(opt => <option key={`pain-${opt}`} value={opt}>{opt === '' ? '–' : opt}</option>)}
                                 </Select>
                              </FormControl>
-                            {/* Кнопка Видалити */}
-                             <Box textAlign="right" gridColumn={{ base: "span 2", sm: "span 1" }} alignSelf="end" pb={1}> {/* Кнопка в кінці */}
-                                <IconButton aria-label="Видалити запис" icon={<DeleteIcon />} size="xs" colorScheme="red" variant="ghost" onClick={() => deleteVitalRow(vitalEntry.id)} isDisabled={isDisabled} />
+                            {/* Delete Button */}
+                             {/* Apply delete button box style, keep gridColumn/alignSelf inline */}
+                             <Box {...vitalSignsStyles.deleteButtonBox} gridColumn={{ base: "span 2", sm: "span 1" }}>
+                                {/* Apply common delete button style */}
+                                <IconButton aria-label="Видалити запис" icon={<DeleteIcon />} {...commonStyles.deleteButton} onClick={() => deleteVitalRow(vitalEntry.id)} isDisabled={isDisabled} />
                              </Box>
                          </SimpleGrid>
                     </Box>
