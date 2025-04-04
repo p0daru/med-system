@@ -4,7 +4,7 @@ import { mode } from '@chakra-ui/theme-tools'; // Helper for light/dark mode sty
 
 // 1. Define Color Palette
 const colors = {
-  // Brand color (Teal/Green from "Completed" heading)
+  // // Brand color (Teal/Green from "Completed" heading)
   brand: {
     50: '#E6FFFA', // Lightest
     100: '#B2F5EA',
@@ -26,6 +26,7 @@ const colors = {
     400: '#FCD34D', // Darker button background / hover (guess)
     // ... add darker shades if needed for text on highlight bg
   },
+
   // Background colors
   bg: {
     page: { // Base background for the entire page area
@@ -53,6 +54,7 @@ const colors = {
        }
    }
 };
+
 
 // 2. Define Fonts
 const fonts = {
@@ -168,7 +170,7 @@ const components = {
                   bg: 'brand.500',
                   borderColor: 'brand.500',
                   _hover: {
-                     bg: 'brand.600',
+                     bg: 'brand.1000',
                      borderColor: 'brand.600',
                   }
               }

@@ -1,14 +1,11 @@
 // src/components/CasualtyCard/InjuryMechanismSection.jsx
+
 import React from 'react';
 import { Box, Heading, VStack, CheckboxGroup, Stack, Checkbox, FormControl, FormLabel, Input, Textarea } from '@chakra-ui/react';
-
-const ALL_MECHANISMS = ['Артобстріл', 'Тупа травма', 'Опік', 'Падіння з висоти', 'Граната', 'Вогнепальна рана', 'СВП', 'Протипіхотна міна', 'ДТП', 'РПГ']; // Без 'Інше'
+import {allMechanisms} from '../../constants/constants.json';
 
 function InjuryMechanismSection({ data, setFormData, isDisabled }) {
-
   const handleCheckboxChange = (values) => {
-    // Оновлюємо масив вибраних механізмів
-    // Якщо 'Інше' знято, очищаємо mechanismOfInjuryOther
     const otherCleared = !values.includes('Інше') ? { mechanismOfInjuryOther: '' } : {};
     setFormData({ ...data, mechanismOfInjury: values, ...otherCleared });
   };
@@ -21,9 +18,7 @@ function InjuryMechanismSection({ data, setFormData, isDisabled }) {
      setFormData({ ...data, injuryDescription: e.target.value });
    };
 
-    // Поточні вибрані значення + 'Інше', якщо є текст
    const currentSelection = data.mechanismOfInjuryOther ? [...data.mechanismOfInjury, 'Інше'] : data.mechanismOfInjury;
-
 
   return (
     <Box>
@@ -33,7 +28,7 @@ function InjuryMechanismSection({ data, setFormData, isDisabled }) {
           <FormLabel fontSize="sm" fontWeight="bold">Механізм поранення (позначте все потрібне)</FormLabel>
           <CheckboxGroup colorScheme='blue' value={currentSelection} onChange={handleCheckboxChange}>
             <Stack spacing={[1, 3]} direction={['column', 'row']} wrap="wrap">
-              {ALL_MECHANISMS.map((mech) => (
+              {allMechanisms.map((mech) => (
                 <Checkbox key={mech} value={mech} isDisabled={isDisabled}>{mech}</Checkbox>
               ))}
               <Checkbox value="Інше" isDisabled={isDisabled}>Інше</Checkbox>
@@ -69,4 +64,5 @@ function InjuryMechanismSection({ data, setFormData, isDisabled }) {
     </Box>
   );
 }
+
 export default InjuryMechanismSection;

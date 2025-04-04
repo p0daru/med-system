@@ -10,6 +10,9 @@ import {
     useDisclosure,
     SimpleGrid, Divider, Badge, Flex
 } from '@chakra-ui/react';
+
+import ViewCasualtyModal from './ViewCasualtyModal';
+
 import { AddIcon, EditIcon, RepeatIcon, SearchIcon, ViewIcon, DeleteIcon } from '@chakra-ui/icons';
 // Переконайтесь, що шлях до API файлу правильний
 import { getInjuredList, deleteInjured } from '../../services/injuredApi';
@@ -56,7 +59,7 @@ function CasualtyLog() {
 
     // Стан та хуки для модального вікна Перегляду Деталей
     const { isOpen: isViewModalOpen, onOpen: onOpenViewModal, onClose: onCloseViewModal } = useDisclosure();
-    const [selectedCardForView, setSelectedCardForView] = useState(null); // Картка для перегляду
+    const [selectedCardForView, setSelectedCardForView] = useState(null);
 
     // Стан та хуки для Діалогу Підтвердження Видалення
     const { isOpen: isDeleteDialogOpen, onOpen: onOpenDeleteDialog, onClose: onCloseDeleteDialog } = useDisclosure();
@@ -273,181 +276,12 @@ function CasualtyLog() {
                 )}
             </VStack>
 
-            {/* --- Модальне вікно Перегляду Деталей --- */}
-            <Modal isOpen={isViewModalOpen} onClose={onCloseViewModal} size="2xl" scrollBehavior="inside">
-                <ModalOverlay bg='blackAlpha.300' backdropFilter='blur(5px)'/>
-                <ModalContent>
-                    {/* <ModalHeader>Боєць {selectedCardForView.individualNumber || null}
-                    <Text><Tag size="sm" colorScheme={getPriorityColorScheme(selectedCardForView.evacuationPriority)}>{selectedCardForView.evacuationPriority || '-'}</Tag></Text>
-                    </ModalHeader> */}
-                    
-                    {/* <ModalHeader>Деталі Картки: {selectedCardForView?.patientFullName || 'N/A'}</ModalHeader> */}
-                    <ModalCloseButton />
-                    <ModalBody pb={6}>
-                        {selectedCardForView ? (
-                            <VStack spacing={5} align="stretch">
-                                {/* --- Секція 1 --- */}
-                                <Box borderWidth={1} p={3} borderRadius="md" borderColor="gray.200">
-                                    <Heading size="sm" mb={2}>1. Дані постраждалого</Heading>
-                                    <SimpleGrid columns={{ base: 1, md: 2 }} spacing={2} fontSize="sm">
-                                        <Text><strong>ПІБ:</strong> {selectedCardForView.patientFullName || '-'}</Text>
-                                        {/* <Text><strong>ID Бійця:</strong> {selectedCardForView.individualNumber || '-'}</Text> */}
-                                        <Text><strong>Стать:</strong> {selectedCardForView.gender || '-'}</Text>
-                                        <Text><strong>Підрозділ:</strong> {selectedCardForView.unit || '-'}</Text>
-                                        <Text><strong>Рід військ:</strong> {selectedCardForView.branchOfService || '-'}</Text>
-                                        <Text><strong>Дата/час поранення:</strong> {formatLogDateTime(selectedCardForView.injuryDateTime)}</Text>
-                                        {/* <Text><strong>Пріоритет евакуації:</strong> 
-                                        <Tag size="sm" colorScheme={getPriorityColorScheme(selectedCardForView.evacuationPriority)}>{selectedCardForView.evacuationPriority || '-'}</Tag></Text> */}
-                                        {/* {selectedCardForView.last4SSN && <Text><strong>Ост. 4 НСС:</strong> {selectedCardForView.last4SSN}</Text>} */}
-                                    </SimpleGrid>
-                                    <Heading size="xs" mt={3} mb={1}>Алергії:</Heading>
-                                    {selectedCardForView.allergies?.nka ? <Tag colorScheme="green" size="sm">Немає відомих алергій</Tag> : (
-                                        <VStack align="start" pl={2} spacing={0.5} fontSize="sm">
-                                            {Object.entries(selectedCardForView.allergies?.known || {}).filter(([, value]) => value).map(([key]) => <Text key={key}>- {key}</Text>)}
-                                            {selectedCardForView.allergies?.other && <Text><strong>Інше:</strong> {selectedCardForView.allergies.other}</Text>}
-                                            {!Object.values(selectedCardForView.allergies?.known || {}).some(v => v) && !selectedCardForView.allergies?.other && <Text fontStyle="italic" color="gray.500">Не вказано</Text>}
-                                        </VStack>
-                                    )}
-                                </Box>
+            <ViewCasualtyModal
+                 isOpen={isViewModalOpen}
+                 onClose={onCloseViewModal}
+                 cardData={selectedCardForView}
+             />
 
-                                {/* --- Секція 2 & 3 --- */}
-                                <Box borderWidth={1} p={3} borderRadius="md" borderColor="gray.200">
-                                    <Heading size="sm" mb={2}>2. Інформація про поранення</Heading>
-                                    <Text fontSize="sm"><strong>Механізм:</strong> {selectedCardForView.mechanismOfInjury?.join(', ') || '-'} {selectedCardForView.mechanismOfInjuryOther ? `(${selectedCardForView.mechanismOfInjuryOther})` : ''}</Text>
-                                    <Text fontSize="sm"><strong>Опис:</strong> {selectedCardForView.injuryDescription || '-'}</Text>
-                                    <Divider my={3} />
-                                    <Heading size="sm" mb={2}>3. Турнікети</Heading>
-                                    <SimpleGrid columns={{ base: 1, sm: 2 }} spacing={2}>
-                                        {Object.entries(selectedCardForView.tourniquets || {}).filter(([limb, data]) => data && (data.time || data.type)).length > 0 ?
-                                           Object.entries(selectedCardForView.tourniquets || {}).map(([limb, data]) => (
-                                                data && (data.time || data.type) ? (
-                                                   <Box key={limb} p={2} borderWidth={1} borderRadius="sm" borderColor="gray.100">
-                                                        <Text fontSize="sm" fontWeight="bold">{ {rightArm: "Пр. рука", leftArm: "Лів. рука", rightLeg: "Пр. нога", leftLeg: "Лів. нога"}[limb] || limb }</Text>
-                                                        <Text fontSize="xs">Час: {data.time || '-'}</Text>
-                                                        <Text fontSize="xs">Тип: {data.type || '-'}</Text>
-                                                    </Box>
-                                                 ) : null
-                                            )) : <Text fontSize="sm" color="gray.500">Не застосовувались</Text>}
-                                    </SimpleGrid>
-                                </Box>
-
-                                {/* --- Секція 4: Вітальні знаки --- */}
-                                <Box borderWidth={1} p={3} borderRadius="md" borderColor="gray.200">
-                                    <Heading size="sm" mb={2}>4. Життєві показники</Heading>
-                                    {(selectedCardForView.vitalSigns || []).length > 0 ? (
-                                        <TableContainer>
-                                            <Table variant="simple" size="xs">
-                                                <Thead>
-                                                    <Tr><Th>Час</Th><Th>Пульс</Th><Th>АТ</Th><Th>ЧД</Th><Th>SpO2</Th><Th>AVPU</Th><Th>Біль</Th></Tr>
-                                                </Thead>
-                                                <Tbody>
-                                                    {(selectedCardForView.vitalSigns || []).map((vs, index) => (
-                                                        <Tr key={`vs-${index}`}>
-                                                            <Td>{vs.time || '-'}</Td><Td>{vs.pulse || '-'}</Td><Td>{vs.bp || '-'}</Td>
-                                                            <Td>{vs.rr || '-'}</Td><Td>{vs.spO2 || '-'}</Td><Td>{vs.avpu || '-'}</Td><Td>{vs.pain || '-'}</Td>
-                                                        </Tr>
-                                                    ))}
-                                                </Tbody>
-                                            </Table>
-                                        </TableContainer>
-                                    ) : <Text fontSize="sm" color="gray.500">Немає записів</Text>}
-                                </Box>
-
-                                 {/* --- Секція 5: Надана допомога --- */}
-                                 <Box borderWidth={1} p={3} borderRadius="md" borderColor="gray.200">
-                                     <Heading size="sm" mb={2}>5. Надана Допомога (MARCH)</Heading>
-                                     <VStack align="stretch" spacing={2}>
-                                          <Text fontSize="xs" fontWeight="bold" color="red.600">C - Circulation:</Text>
-                                         <HStack wrap="wrap" spacing={2}>
-                                              {selectedCardForView.aidCirculation?.tourniquetJunctional && <Tag size="sm" colorScheme="red">Вузловий турнікет</Tag>}
-                                              {selectedCardForView.aidCirculation?.tourniquetTruncal && <Tag size="sm" colorScheme="red">Турнікет на тулуб</Tag>}
-                                              {selectedCardForView.aidCirculation?.dressingHemostatic && <Tag size="sm" colorScheme="red">Гемостат. пов'язка</Tag>}
-                                              {selectedCardForView.aidCirculation?.dressingPressure && <Tag size="sm" colorScheme="red">Тиснуча пов'язка</Tag>}
-                                              {selectedCardForView.aidCirculation?.dressingOther && <Tag size="sm" colorScheme="red">Інша пов'язка</Tag>}
-                                              {!Object.values(selectedCardForView.aidCirculation || {}).some(v => v) && <Text fontSize="xs" color="gray.500">Не застосовано</Text>}
-                                         </HStack>
-                                          <Text fontSize="xs" fontWeight="bold" color="orange.500" mt={1}>A - Airway:</Text>
-                                         <HStack wrap="wrap" spacing={2}>
-                                             {selectedCardForView.aidAirway?.npa && <Tag size="sm" colorScheme="orange">Назофаринг. повітровід</Tag>}
-                                             {selectedCardForView.aidAirway?.supraglottic && <Tag size="sm" colorScheme="orange">Надгорт. повітровід</Tag>}
-                                             {selectedCardForView.aidAirway?.etTube && <Tag size="sm" colorScheme="orange">Ендотрах. трубка</Tag>}
-                                             {selectedCardForView.aidAirway?.cric && <Tag size="sm" colorScheme="orange">Крікотиреотомія</Tag>}
-                                             {!Object.values(selectedCardForView.aidAirway || {}).some(v => v) && <Text fontSize="xs" color="gray.500">Не застосовано</Text>}
-                                         </HStack>
-                                          <Text fontSize="xs" fontWeight="bold" color="blue.500" mt={1}>B - Breathing:</Text>
-                                         <HStack wrap="wrap" spacing={2}>
-                                              {selectedCardForView.aidBreathing?.o2 && <Tag size="sm" colorScheme="blue">Кисень (O2)</Tag>}
-                                              {selectedCardForView.aidBreathing?.needleDecompression && <Tag size="sm" colorScheme="blue">Голкова декомпресія</Tag>}
-                                              {selectedCardForView.aidBreathing?.chestTube && <Tag size="sm" colorScheme="blue">Дренаж плевральний</Tag>}
-                                              {selectedCardForView.aidBreathing?.occlusiveDressing && <Tag size="sm" colorScheme="blue">Оклюз. наліпка</Tag>}
-                                              {!Object.values(selectedCardForView.aidBreathing || {}).some(v => v) && <Text fontSize="xs" color="gray.500">Не застосовано</Text>}
-                                         </HStack>
-                                         <Text fontSize="xs" fontWeight="bold" color="red.600" mt={1}>C - Інфузійна терапія:</Text>
-                                         {(selectedCardForView.fluidsGiven || []).length > 0 ? (
-                                             <VStack align="stretch" pl={2} spacing={1}>
-                                                 {(selectedCardForView.fluidsGiven || []).map((f, idx) => (
-                                                     <Text key={`fluid-${idx}`} fontSize="xs">{f.time} - {f.name} ({f.volume} мл) - {f.route}</Text>
-                                                 ))}
-                                             </VStack>
-                                         ) : <Text fontSize="xs" color="gray.500">Не застосовано</Text>}
-                                     </VStack>
-                                 </Box>
-
-                                 {/* --- Секція 6: Ліки та HE --- */}
-                                <Box borderWidth={1} p={3} borderRadius="md" borderColor="gray.200">
-                                     <Heading size="sm" mb={2}>6. Ліки та Інше (H+E)</Heading>
-                                     <Text fontSize="xs" fontWeight="bold" mb={1}>Введені ліки:</Text>
-                                     {(selectedCardForView.medicationsGiven || []).length > 0 ? (
-                                         <VStack align="stretch" pl={2} spacing={1}>
-                                             {(selectedCardForView.medicationsGiven || []).map((m, idx) => (
-                                                 <Text key={`med-${idx}`} fontSize="xs">{m.time} - {m.name} - {m.dosage} - {m.route}</Text>
-                                             ))}
-                                         </VStack>
-                                     ) : <Text fontSize="xs" color="gray.500">Немає записів</Text>}
-                                     <Text fontSize="xs" fontWeight="bold" mt={2} mb={1}>Інша допомога (H+E):</Text>
-                                      <HStack wrap="wrap" spacing={2}>
-                                          {selectedCardForView.aidHypothermiaOther?.combatPillPack && <Tag size="sm">Pill Pack</Tag>}
-                                          {selectedCardForView.aidHypothermiaOther?.eyeShieldRight && <Tag size="sm">Щиток на око (П)</Tag>}
-                                          {selectedCardForView.aidHypothermiaOther?.eyeShieldLeft && <Tag size="sm">Щиток на око (Л)</Tag>}
-                                          {selectedCardForView.aidHypothermiaOther?.splinting && <Tag size="sm">Шина</Tag>}
-                                          {selectedCardForView.aidHypothermiaOther?.hypothermiaPrevention && <Tag size="sm">Попер. гіпотермії ({selectedCardForView.aidHypothermiaOther.hypothermiaPreventionType || 'тип не вказано'})</Tag>}
-                                          {!Object.values(selectedCardForView.aidHypothermiaOther || {}).some(v => v) && <Text fontSize="xs" color="gray.500">Не застосовано</Text>}
-                                      </HStack>
-                                </Box>
-
-
-                                {/* --- Секція 7 & 8 & Адмін --- */}
-                                <Box borderWidth={1} p={3} borderRadius="md" borderColor="gray.200">
-                                     <Heading size="sm" mb={2}>7. Нотатки</Heading>
-                                     <Text fontSize="sm" whiteSpace="pre-wrap" bg="gray.50" p={2} borderRadius="sm">{selectedCardForView.notes || <Text as="span" color="gray.500">Немає</Text>}</Text>
-                                     <Divider my={3}/>
-                                     <Heading size="sm" mb={2}>8. Дані особи, що надала допомогу</Heading>
-                                     <Text fontSize="sm"><strong>ПІБ:</strong> {selectedCardForView.providerFullName || '-'}</Text>
-                                     <Text fontSize="sm"><strong>НСС:</strong> {selectedCardForView.providerLast4SSN || '-'}</Text>
-                                     <Divider my={3}/>
-                                     <Heading size="sm" mb={2}>Адмін. Інформація</Heading>
-                                     <Text fontSize="xs"><strong>Створено:</strong> {formatLogDateTime(selectedCardForView.createdAt)}</Text>
-                                     <Text fontSize="xs"><strong>Оновлено:</strong> {formatLogDateTime(selectedCardForView.updatedAt)}</Text>
-                                     <Text fontSize="xs"><strong>Записав:</strong> {selectedCardForView.recordedBy || '-'}</Text>
-                                     <Text fontSize="xs"><strong>ID Запису:</strong> {selectedCardForView._id}</Text>
-                                </Box>
-
-                            </VStack>
-                        ) : (
-                            <VStack justify="center" align="center" minHeight="200px">
-                                <Spinner size="lg" color="blue.500"/>
-                                <Text mt={2}>Завантаження деталей...</Text>
-                            </VStack>
-                        )}
-                    </ModalBody>
-                    <ModalFooter borderTopWidth="1px" borderColor="gray.200" pt={3}>
-                        <Button colorScheme='gray' variant='outline' mr={3} onClick={onCloseViewModal} size="sm">Закрити</Button>
-                        {selectedCardForView && (
-                            <Button colorScheme='blue' variant='solid' onClick={() => { onCloseViewModal(); navigate(`/casualty/${selectedCardForView._id}`); }} size="sm">Редагувати</Button>
-                        )}
-                    </ModalFooter>
-                </ModalContent>
-            </Modal>
 
             {/* --- Діалог Підтвердження Видалення --- */}
             <AlertDialog isOpen={isDeleteDialogOpen} leastDestructiveRef={cancelRef} onClose={onCloseDeleteDialog} isCentered>

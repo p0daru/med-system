@@ -19,9 +19,9 @@ import AdministrativeDataSection from './AdministrativeDataSection';
 // Import API & Utils
 import { createInjured, getInjuredById, updateInjured } from '../../services/injuredApi';
 import constants from '../../constants/constants.json';
-// --- Імпортуємо генератор тестових даних ---
 import { generateCasualtyCardData } from '../../utils/mockDataGenerator'; // Перевірте шлях
 import { generateIndividualNumber } from '../../utils/helpers'; 
+import { casualtyCardStyles, commonStyles } from './casualtyCardStyles'; 
 
 // --- Helper Functions ---
 const getISOFromDateTime = (dateStr, timeStr) => {
@@ -300,7 +300,7 @@ function CasualtyCard() {
         }
         // --- "Інше" Validation ---
         if (formData.branchOfService === 'Інше' && !formData.branchOfServiceOther?.trim()) {
-            toast({ title: 'Помилка валідації', description: 'Будь ласка, вкажіть рід військ/службу в полі "Інше".', status: 'warning', duration: 4000, isClosable: true });
+            toast({ title: 'Помилка валідації', description: 'Будь ласка, вкажіть рід військ в полі "Інше".', status: 'warning', duration: 4000, isClosable: true });
             setIsSubmitting(false); return;
         }
         let tourniquetValidationError = false;
@@ -537,130 +537,100 @@ function CasualtyCard() {
     // --- Render Logic ---
     if (isLoadingData) {
         return (
-            <Box textAlign="center" mt="20">
-                <Spinner size="xl" color="blue.500" thickness="4px" />
-                <Text mt={4} fontSize="lg" color="gray.600">Завантаження даних картки...</Text>
-            </Box>
+          <Box {...casualtyCardStyles.loadingBox}>
+            <Spinner {...casualtyCardStyles.loadingSpinner} />
+            <Text {...casualtyCardStyles.loadingText}>Завантаження даних картки...</Text>
+          </Box>
         );
-    }
-
-     // Show error primarily when editing, as creation starts with a blank slate
-     // An error during initial load in edit mode is critical
-    if (fetchError && isEditMode && !formData._id) { // Check if formData is populated as fallback
-         return (
-             <VStack spacing={4} align="center" mt={10}>
-                 <Alert
-                     status="error"
-                     variant="subtle"
-                     flexDirection="column"
-                     alignItems="center"
-                     justifyContent="center"
-                     textAlign="center"
-                     height="200px"
-                     borderRadius="md"
-                 >
-                     <AlertIcon boxSize="40px" mr={0} />
-                     <AlertTitle mt={4} mb={1} fontSize="lg">Помилка завантаження</AlertTitle>
-                     <AlertDescription maxWidth="sm">{fetchError}</AlertDescription>
-                 </Alert>
-                 <Button onClick={() => navigate('/')} colorScheme="gray" mt={4}>
-                     Повернутися до списку
-                 </Button>
-             </VStack>
-         );
-     }
-
-
-    return (
+      }
+    
+      if (fetchError && isEditMode && !formData._id) {
+        return (
+          <VStack {...casualtyCardStyles.fetchErrorVStack}>
+            <Alert {...casualtyCardStyles.fetchErrorAlert}>
+              <AlertIcon {...casualtyCardStyles.fetchErrorAlertIcon} />
+              <AlertTitle {...casualtyCardStyles.fetchErrorAlertTitle}>Помилка завантаження</AlertTitle>
+              <AlertDescription {...casualtyCardStyles.fetchErrorAlertDescription}>{fetchError}</AlertDescription>
+            </Alert>
+            <Button onClick={() => navigate('/')} {...casualtyCardStyles.fetchErrorReturnButton}>
+              Повернутися до списку
+            </Button>
+          </VStack>
+        );
+      }
+    
+      return (
         <Box
-            as="form"
-            onSubmit={(e) => { e.preventDefault(); handleSave(); }} // Handle form submission
-            borderWidth="1px"
-            borderRadius="lg"
-            p={{ base: 3, sm: 4, md: 6 }} // Responsive padding
-            boxShadow="md"
-            mb={10} // Margin bottom
+          as="form"
+          onSubmit={(e) => { e.preventDefault(); handleSave(); }}
+          {...casualtyCardStyles.formContainer} // Apply styles here
         >
-            {/* --- Header --- */}
-            <Heading as="h1" size="lg" mb={4} textAlign="center" color="gray.700">
-                 {isEditMode ? 'Редагування Картки Пораненого' : 'Нова Картка Пораненого'}
-                 {/* Display Card Number if available (usually after creation/on edit) */}
-                 {isEditMode && formData.individualNumber && (
-                     <Text fontSize="md" color="gray.500" mt={1} fontWeight="medium">
-                         Номер картки: {formData.individualNumber}
-                     </Text>
-                 )}
-            </Heading>
-
-            {/* Display non-critical fetch error during edit (e.g., re-fetch after update failed) */}
-             {fetchError && isEditMode && (
-                 <Alert status="warning" mb={4} borderRadius="md" variant="left-accent">
-                     <AlertIcon />
-                     <Box flex="1">
-                         <AlertTitle fontSize="sm">Попередження</AlertTitle>
-                         <AlertDescription display="block" fontSize="xs">{fetchError}</AlertDescription>
-                     </Box>
-                 </Alert>
-             )}
-
-            {/* --- Form Sections --- */}
-            <VStack spacing={5} divider={<Divider borderColor="gray.200" />} align="stretch">
-                {/* --- Передача пропсів до дочірніх компонентів --- */}
-                <PatientDataSection data={formData} setFormData={setFormData} isDisabled={isDisabled} />
-                <InjuryMechanismSection data={formData} setFormData={setFormData} isDisabled={isDisabled} />
-                 {/* Додайте пропси до InjuryMechanismSection, якщо потрібно константи механізмів */}
-                <TourniquetSection data={formData} setFormData={setFormData} isDisabled={isDisabled} />
-                <VitalSignsSection data={formData} setFormData={setFormData} isDisabled={isDisabled} />
-                <ProvidedAidSection
-                    data={formData} setFormData={setFormData} isDisabled={isDisabled}
-                    FLUID_ROUTES={constants.fluidRoutes}
-                    COMMON_FLUIDS={constants.commonFluids}
-                />
-                <MedicationsSection
-                    data={formData} setFormData={setFormData} isDisabled={isDisabled}
-                    MED_ROUTES={constants.medRoutes}
-                    COMMON_MEDICATIONS={constants.commonMedications}
-                />
-                <AdministrativeDataSection data={formData} setFormData={setFormData} isDisabled={isDisabled}/>
-
-                {/* --- Action Buttons --- */}
-                <HStack pt={4} spacing={4} justify="space-between"> {/* Змінено justify */}
-                     {/* --- Кнопка для тестових даних --- */}
+          {/* ... (Heading potentially commented out) ... */}
+    
+          {fetchError && isEditMode && (
+            <Alert {...casualtyCardStyles.nonCriticalErrorAlert}>
+              <AlertIcon />
+              <Box {...casualtyCardStyles.nonCriticalErrorBox}>
+                <AlertTitle {...casualtyCardStyles.nonCriticalErrorTitle}>Попередження</AlertTitle>
+                <AlertDescription {...casualtyCardStyles.nonCriticalErrorDescription}>{fetchError}</AlertDescription>
+              </Box>
+            </Alert>
+          )}
+    
+          <VStack
+             {...casualtyCardStyles.formSectionsVStack}
+             divider={<Divider {...casualtyCardStyles.formSectionsDivider} />}
+          >
+            {/* Pass props down, including isDisabled */}
+            <PatientDataSection data={formData} setFormData={setFormData} isDisabled={isDisabled} />
+            <InjuryMechanismSection data={formData} setFormData={setFormData} isDisabled={isDisabled} />
+            <TourniquetSection data={formData} setFormData={setFormData} isDisabled={isDisabled} />
+            <VitalSignsSection data={formData} setFormData={setFormData} isDisabled={isDisabled} />
+            <ProvidedAidSection
+              data={formData}
+              setFormData={setFormData}
+              isDisabled={isDisabled}
+              FLUID_ROUTES={constants.fluidRoutes}
+              COMMON_FLUIDS={constants.commonFluids}
+            />
+            <MedicationsSection
+              data={formData}
+              setFormData={setFormData}
+              isDisabled={isDisabled}
+            />
+            <AdministrativeDataSection data={formData} setFormData={setFormData} isDisabled={isDisabled}/>
+          </VStack>
+    
+           {/* Action Buttons */}
+           <HStack {...casualtyCardStyles.actionButtonsHStack}>
+               <Button
+                    leftIcon={<QuestionOutlineIcon />}
+                    onClick={handleFillWithTestData}
+                    isDisabled={isDisabled || isEditMode}
+                    {...casualtyCardStyles.testDataButton} // Apply styles
+                >
+                    Тестові дані
+                </Button>
+                <HStack> {/* Group main buttons */}
                      <Button
-                        leftIcon={<QuestionOutlineIcon />}
-                        onClick={handleFillWithTestData}
-                        isDisabled={isDisabled || isEditMode} // Блокуємо при завантаженні/збереженні та в режимі редагування (щоб випадково не перезаписати)
-                        variant="outline"
-                        colorScheme="teal"
-                        size="sm" // Менший розмір для допоміжної кнопки
-                     >
-                         Тестові дані
-                     </Button>
-                    <HStack> {/* Групуємо основні кнопки */}
-                        <Button
-                            onClick={() => navigate('/')}
-                            isDisabled={isSubmitting}
-                            variant="outline"
-                            colorScheme="gray"
-                            size="md"
-                        >
-                            До списку карток
-                        </Button>
-                        <Button
-                            type="submit"
-                            colorScheme="blue"
-                            isLoading={isSubmitting}
-                            loadingText={isEditMode ? 'Оновлення...' : 'Збереження...'}
-                            isDisabled={isDisabled}
-                            size="md"
-                        >
-                            {isEditMode ? 'Оновити Картку' : 'Зберегти Картку'}
-                        </Button>
-                    </HStack>
+                        onClick={() => navigate('/')}
+                        isDisabled={isSubmitting}
+                        {...casualtyCardStyles.backToListButton} // Apply styles
+                    >
+                        До списку карток
+                    </Button>
+                    <Button
+                        isLoading={isSubmitting}
+                        loadingText={isEditMode ? 'Оновлення...' : 'Збереження...'}
+                        isDisabled={isDisabled}
+                        {...casualtyCardStyles.submitButton} // Apply styles
+                    >
+                        {isEditMode ? 'Оновити Картку' : 'Зберегти Картку'}
+                    </Button>
                 </HStack>
-            </VStack>
+           </HStack>
         </Box>
-    );
-}
-
-export default CasualtyCard;
+      );
+    }
+    
+    export default CasualtyCard;
