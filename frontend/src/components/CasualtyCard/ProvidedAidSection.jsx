@@ -78,7 +78,7 @@ function ProvidedAidSection({ data, setFormData, isDisabled, COMMON_FLUIDS, FLUI
 
     return (
         <Box>
-            <Heading size="sm" mb={3}>5. Надана Допомога (MARCH)</Heading>
+            {/* <Heading size="sm" mb={3}>5. Надана Допомога (MARCH)</Heading> */}
 
              {/* --- C - Circulation (Масивна кровотеча) --- */}
              <Box mb={3}>
@@ -121,10 +121,10 @@ function ProvidedAidSection({ data, setFormData, isDisabled, COMMON_FLUIDS, FLUI
             <Box>
                 <HStack justify="space-between" mb={2}>
                     <Heading size="xs" color="red.600">C - Інфузійна терапія / Продукти крові</Heading>
-                     <Button leftIcon={<AddIcon />} colorScheme="pink" variant="outline" size="xs" onClick={addFluidRow} isDisabled={isDisabled}>
+                </HStack>
+                <Button leftIcon={<AddIcon />} colorScheme="pink" variant="outline" size="xs"  my={4} onClick={addFluidRow} isDisabled={isDisabled}>
                         Додати Рідину/Кров
                     </Button>
-                </HStack>
                  <VStack spacing={3} align="stretch">
                      {fluidsGivenData.length === 0 && !isDisabled && (
                         <Text color="gray.500" fontSize="sm" textAlign="center" py={2}>Немає записів. Натисніть "+ Додати Рідину/Кров", щоб додати.</Text>

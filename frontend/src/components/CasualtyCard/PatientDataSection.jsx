@@ -78,9 +78,9 @@ function PatientDataSection({ data, setFormData, isDisabled }) {
     return (
         <Box>
             {/* Apply section heading style */}
-            <Heading {...patientDataStyles.section1Heading}>
+            {/* <Heading {...patientDataStyles.section1Heading}>
                 1. Дані Постраждалого
-            </Heading>
+            </Heading> */}
 
             {/* Apply patient info grid style */}
             <SimpleGrid {...patientDataStyles.patientInfoGrid}>
