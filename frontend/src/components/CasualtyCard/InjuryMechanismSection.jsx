@@ -22,7 +22,7 @@ function InjuryMechanismSection({ data, setFormData, isDisabled }) {
 
   return (
     <Box>
-      <Heading size="md" mb={4}>2. Інформація про Поранення</Heading>
+      {/* <Heading size="md" mb={4}>2. Інформація про Поранення</Heading> */}
       <VStack align="stretch" spacing={4}>
         <FormControl>
           <FormLabel fontSize="sm" fontWeight="bold">Механізм поранення (позначте все потрібне)</FormLabel>

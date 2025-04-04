@@ -99,7 +99,7 @@ function TourniquetSection({ data, setFormData, isDisabled }) {
 
     return (
         <Box>
-            <Heading size="sm" mb={3}>3. Турнікети</Heading> {/* Оновлено нумерацію */}
+            {/* <Heading size="sm" mb={3}>3. Турнікети</Heading> */}
             <SimpleGrid columns={{ base: 1, sm: 2, md: 4 }} spacing={4}>
                 <TourniquetLimb
                     limb="rightArm"

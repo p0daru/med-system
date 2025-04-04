@@ -1,6 +1,6 @@
 // src/components/CasualtyCard/AdministrativeDataSection.jsx
 import React, { useCallback } from 'react'; // Імпортуємо useCallback
-import { Box, Heading, VStack, SimpleGrid, FormControl, FormLabel, Input, Textarea, Text } from '@chakra-ui/react';
+import { Box, Heading, VStack, SimpleGrid, FormControl, FormLabel, Input, Divider } from '@chakra-ui/react';
 import { adminDataStyles, commonStyles } from './casualtyCardStyles'; 
 
 function AdministrativeDataSection({ data, setFormData, isDisabled }) {
@@ -44,24 +44,12 @@ function AdministrativeDataSection({ data, setFormData, isDisabled }) {
   };
   return (
     <Box>
-      {/* Section 7: Notes */}
-      <FormControl {...adminDataStyles.notesControl}>
-        <FormLabel {...adminDataStyles.label}>7. Нотатки</FormLabel> {/* Use label style */}
-        <Textarea
-          name="notes"
-          value={data?.notes || ''}
-          onChange={handleChange}
-          isDisabled={isDisabled}
-          placeholder="Додаткова інформація..."
-          rows={4}
-        />
-      </FormControl>
 
       {/* Section 8: Provider Data */}
-      <Heading {...adminDataStyles.section8Heading}>8. Дані Особи, яка надала допомогу</Heading>
+      <Heading {...adminDataStyles.section8Heading}> Дані Особи, яка надала допомогу</Heading>
       <SimpleGrid {...adminDataStyles.providerGrid}>
         <FormControl id="providerFullName">
-          <FormLabel {...adminDataStyles.label}>ПІБ (Прізвище, Ім'я)</FormLabel> {/* Use label style */}
+          <FormLabel >ПІБ (Прізвище, Ім'я)</FormLabel> {/* Use label style */}
           <Input
             name="providerFullName"
             value={data?.providerFullName || ''}
@@ -87,8 +75,10 @@ function AdministrativeDataSection({ data, setFormData, isDisabled }) {
         </FormControl>
       </SimpleGrid>
 
+      <Divider my={4} borderColor="gray.200"/>
+
       {/* Administrative Info */}
-      <Heading {...adminDataStyles.adminInfoHeading}>Адміністративна Інформація</Heading>
+      {/* <Heading {...adminDataStyles.adminInfoHeading}>Адміністративна Інформація</Heading> */}
       <VStack {...adminDataStyles.adminInfoVStack}>
         <SimpleGrid {...adminDataStyles.timestampsGrid}>
           {/* Recorded By */}

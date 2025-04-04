@@ -2,7 +2,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
-    Box, Heading, VStack, Divider, Button, useToast, Spinner, Text, Alert, AlertIcon, AlertTitle, AlertDescription, HStack
+    Box, Heading, VStack, Divider, Button, useToast, Spinner, Text, Alert,
+    AlertIcon, AlertTitle, AlertDescription, HStack, 
+    Accordion,
+    AccordionItem,
+    AccordionButton,
+    AccordionPanel,
+    AccordionIcon,
 } from '@chakra-ui/react';
 import { QuestionOutlineIcon } from '@chakra-ui/icons'; // Іконка для кнопки тестування
 
@@ -559,78 +565,182 @@ function CasualtyCard() {
         );
       }
     
-      return (
-        <Box
+      const formTitle = isEditMode
+      ? `Редагування картки #${formData?.id || '...'}`
+      : 'Нова картка';
+
+  const allSectionIndices = [0, 1, 2, 3, 4, 5, 6];
+
+  return (
+      <Box
           as="form"
-          onSubmit={(e) => { e.preventDefault(); handleSave(); }}
-          {...casualtyCardStyles.formContainer} // Apply styles here
-        >
-          {/* ... (Heading potentially commented out) ... */}
-    
+          {...casualtyCardStyles.formContainer}
+      >
+          <Heading size="lg" mb={6} textAlign="center"> {/* Збільшено відступ знизу */}
+              {formTitle}
+          </Heading>
+
           {fetchError && isEditMode && (
-            <Alert {...casualtyCardStyles.nonCriticalErrorAlert}>
-              <AlertIcon />
-              <Box {...casualtyCardStyles.nonCriticalErrorBox}>
-                <AlertTitle {...casualtyCardStyles.nonCriticalErrorTitle}>Попередження</AlertTitle>
-                <AlertDescription {...casualtyCardStyles.nonCriticalErrorDescription}>{fetchError}</AlertDescription>
-              </Box>
-            </Alert>
+              <Alert status="warning" borderRadius="md" mb={4} {...casualtyCardStyles.nonCriticalErrorAlert}> {/* Додано mb */}
+                  {/* ... вміст Alert ... */}
+                  <AlertIcon />
+                  <Box {...casualtyCardStyles.nonCriticalErrorBox}>
+                      <AlertTitle {...casualtyCardStyles.nonCriticalErrorTitle}>Попередження</AlertTitle>
+                      <AlertDescription {...casualtyCardStyles.nonCriticalErrorDescription}>{fetchError}</AlertDescription>
+                  </Box>
+              </Alert>
           )}
-    
-          <VStack
-             {...casualtyCardStyles.formSectionsVStack}
-             divider={<Divider {...casualtyCardStyles.formSectionsDivider} />}
+
+          <Accordion
+              allowMultiple
+              allowToggle
+              defaultIndex={allSectionIndices}
+              width="100%"
+              // Стилі для самого Accordion контейнера, якщо потрібно
           >
-            {/* Pass props down, including isDisabled */}
-            <PatientDataSection data={formData} setFormData={setFormData} isDisabled={isDisabled} />
-            <InjuryMechanismSection data={formData} setFormData={setFormData} isDisabled={isDisabled} />
-            <TourniquetSection data={formData} setFormData={setFormData} isDisabled={isDisabled} />
-            <VitalSignsSection data={formData} setFormData={setFormData} isDisabled={isDisabled} />
-            <ProvidedAidSection
-              data={formData}
-              setFormData={setFormData}
-              isDisabled={isDisabled}
-              FLUID_ROUTES={constants.fluidRoutes}
-              COMMON_FLUIDS={constants.commonFluids}
-            />
-            <MedicationsSection
-              data={formData}
-              setFormData={setFormData}
-              isDisabled={isDisabled}
-            />
-            <AdministrativeDataSection data={formData} setFormData={setFormData} isDisabled={isDisabled}/>
-          </VStack>
-    
-           {/* Action Buttons */}
-           <HStack {...casualtyCardStyles.actionButtonsHStack}>
+              {/* --- Секція 1: Дані пацієнта --- */}
+              {/* Застосовуємо стилі до AccordionItem */}
+              <AccordionItem mb={4} borderWidth="1px" borderColor="gray.200" borderRadius="md">
+                  <h2> {/* Для доступності */}
+                      <AccordionButton _hover={{ bg: 'gray.600' }} py={3} px={4}> {/* Додаємо відступи та hover ефект */}
+                          <Box flex='1' textAlign='left'>
+                              {/* Використовуємо Heading для заголовка всередині кнопки */}
+                              <Heading size="md" fontWeight="bold" >1. Дані Постраждалого</Heading>
+                          </Box>
+                          <AccordionIcon />
+                      </AccordionButton>
+                  </h2>
+                  {/* Панель тепер має відступи */}
+                  <AccordionPanel pb={4} px={4} pt={2}>
+                      <PatientDataSection data={formData} setFormData={setFormData} isDisabled={isDisabled} />
+                  </AccordionPanel>
+              </AccordionItem>
+
+              {/* --- Секція 2: Інформація про поранення --- */}
+              <AccordionItem mb={4} borderWidth="1px" borderColor="gray.200" borderRadius="md">
+                  <h2>
+                      <AccordionButton _hover={{ bg: 'gray.600' }} py={3} px={4}>
+                          <Box flex='1' textAlign='left'>
+                              <Heading size="md" fontWeight="bold">2. Інформація про Поранення</Heading>
+                          </Box>
+                          <AccordionIcon />
+                      </AccordionButton>
+                  </h2>
+                  
+                  <AccordionPanel pb={4} px={4} pt={2}>
+                      <InjuryMechanismSection data={formData} setFormData={setFormData} isDisabled={isDisabled} />
+                       <Divider py={3} borderColor="gray.200"/>
+                      <Heading  py={5} px={0} size="sm" fontWeight="semibold"> Турнікети</Heading>
+                      <TourniquetSection pb={4} px={4} pt={2} data={formData} setFormData={setFormData} isDisabled={isDisabled} />
+                  </AccordionPanel>
+              </AccordionItem>
+
+               {/* --- Секція 4: Життєві показники --- */}
+               <AccordionItem mb={4} borderWidth="1px" borderColor="gray.200" borderRadius="md">
+                  <h2>
+                      <AccordionButton _hover={{ bg: 'gray.600' }} py={3} px={4}>
+                          <Box flex='1' textAlign='left'>
+                              <Heading size="md" fontWeight="bold">3. Симптоми та ознаки</Heading>
+                          </Box>
+                          <AccordionIcon />
+                      </AccordionButton>
+                  </h2>
+                  <AccordionPanel pb={4} px={4} pt={2}>
+                      <VitalSignsSection data={formData} setFormData={setFormData} isDisabled={isDisabled} />
+                  </AccordionPanel>
+              </AccordionItem>
+
+               {/* --- Секція 5: Надана допомога --- */}
+               <AccordionItem mb={4} borderWidth="1px" borderColor="gray.200" borderRadius="md">
+                   <h2>
+                      <AccordionButton _hover={{ bg: 'gray.600' }} py={3} px={4}>
+                          <Box flex='1' textAlign='left'>
+                              <Heading size="md" fontWeight="bold">4. Терапія / Надана допомога </Heading>
+                          </Box>
+                          <AccordionIcon />
+                      </AccordionButton>
+                  </h2>
+                  <AccordionPanel pb={4} px={4} pt={2}>
+                      <ProvidedAidSection
+                          data={formData}
+                          setFormData={setFormData}
+                          isDisabled={isDisabled}
+                          FLUID_ROUTES={constants.fluidRoutes}
+                          COMMON_FLUIDS={constants.commonFluids}
+                      />
+                  </AccordionPanel>
+              </AccordionItem>
+
+               {/* --- Секція 6: Ліки --- */}
+               <AccordionItem mb={4} borderWidth="1px" borderColor="gray.200" borderRadius="md">
+                   <h2>
+                      <AccordionButton _hover={{ bg: 'gray.600' }} py={3} px={4}>
+                          <Box flex='1' textAlign='left'>
+                              <Heading size="md" fontWeight="bold">5. Ліки</Heading>
+                          </Box>
+                          <AccordionIcon />
+                      </AccordionButton>
+                  </h2>
+                  <AccordionPanel pb={4} px={4} pt={2}>
+                      <MedicationsSection
+                          data={formData}
+                          setFormData={setFormData}
+                          isDisabled={isDisabled}
+                      />
+                  </AccordionPanel>
+              </AccordionItem>
+
+               {/* --- Секція 7: Адміністративні дані --- */}
+               <AccordionItem borderWidth="1px" borderColor="gray.200" borderRadius="md"> {/* Останній елемент без mb */}
+                  <h2>
+                      <AccordionButton _hover={{ bg: 'gray.600' }} py={3} px={4}>
+                          <Box flex='1' textAlign='left'>
+                              <Heading size="md" fontWeight="bold">. Адміністративні Дані</Heading>
+                          </Box>
+                          <AccordionIcon />
+                      </AccordionButton>
+                  </h2>
+                  <AccordionPanel pb={4} px={4} pt={2}>
+                      <AdministrativeDataSection data={formData} setFormData={setFormData} isDisabled={isDisabled} />
+                  </AccordionPanel>
+              </AccordionItem>
+
+          </Accordion> {/* Кінець Accordion */}
+
+          {/* Action Buttons */}
+           {/* Додаємо відступ зверху перед кнопками */}
+          <HStack {...casualtyCardStyles.actionButtonsHStack} mt={6}>
+              {/* ... кнопки ... */}
                <Button
-                    leftIcon={<QuestionOutlineIcon />}
-                    onClick={handleFillWithTestData}
-                    isDisabled={isDisabled || isEditMode}
-                    {...casualtyCardStyles.testDataButton} // Apply styles
-                >
-                    Тестові дані
-                </Button>
-                <HStack> {/* Group main buttons */}
-                     <Button
-                        onClick={() => navigate('/')}
-                        isDisabled={isSubmitting}
-                        {...casualtyCardStyles.backToListButton} // Apply styles
-                    >
-                        До списку карток
-                    </Button>
-                    <Button
-                        isLoading={isSubmitting}
-                        loadingText={isEditMode ? 'Оновлення...' : 'Збереження...'}
-                        isDisabled={isDisabled}
-                        {...casualtyCardStyles.submitButton} // Apply styles
-                    >
-                        {isEditMode ? 'Оновити Картку' : 'Зберегти Картку'}
-                    </Button>
-                </HStack>
-           </HStack>
-        </Box>
-      );
-    }
-    
-    export default CasualtyCard;
+                  leftIcon={<QuestionOutlineIcon />}
+                  onClick={handleFillWithTestData}
+                  isDisabled={isDisabled || isEditMode}
+                  {...casualtyCardStyles.testDataButton}
+              >
+                  Тестові дані
+              </Button>
+              <HStack>
+                   <Button
+                      onClick={() => navigate('/')}
+                      isDisabled={isSubmitting}
+                      {...casualtyCardStyles.backToListButton}
+                  >
+                      До списку карток
+                  </Button>
+                   <Button
+                      type="button"
+                      onClick={handleSave}
+                      isLoading={isSubmitting}
+                      loadingText={isEditMode ? 'Оновлення...' : 'Збереження...'}
+                      isDisabled={isDisabled || isSubmitting}
+                      {...casualtyCardStyles.submitButton}
+                  >
+                      {isEditMode ? 'Оновити Картку' : 'Зберегти Картку'}
+                  </Button>
+              </HStack>
+          </HStack>
+      </Box>
+  );
+}
+
+export default CasualtyCard;

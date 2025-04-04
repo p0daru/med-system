@@ -3,7 +3,7 @@ import {
     Box, Heading, Checkbox, SimpleGrid, Input, Select, Button, IconButton,
     HStack, Text, VStack, Divider, FormControl, FormLabel, Tooltip,
     InputGroup, InputRightAddon,
-    FormErrorMessage // Імпортуємо FormErrorMessage
+    FormErrorMessage, Textarea// Імпортуємо FormErrorMessage
 } from '@chakra-ui/react';
 import { AddIcon, DeleteIcon, TimeIcon } from '@chakra-ui/icons';
 
@@ -14,6 +14,7 @@ import {
     dosageUnits
 } from '../../constants/constants.json'; // Переконайтесь, що шлях правильний
 
+import {medicationsStyles} from './casualtyCardStyles';
 // --- Константи ---
 const EYE_SHIELD_OPTIONS = [
     { value: 'Ліве', label: 'Ліве око' },
@@ -455,35 +456,27 @@ function MedicationsSection({ data, setFormData, isDisabled }) {
         }));
      }, [setAidFormDataAndValidate]);
 
-
-   // Додамо кнопку для демонстрації загальної валідації
-   const handleValidateAndSubmit = () => {
-       const isMedicationsValid = validateAllMedications();
-       // const isAidValid = Object.keys(validateHypothermiaBlock(aidHypothermiaOtherData)).length === 0; // Валідуємо H+E
-       // setAidErrors(validateHypothermiaBlock(aidHypothermiaOtherData)); // Оновлюємо помилки H+E
-
-       if (isMedicationsValid /* && isAidValid */) {
-           console.log("Форма валідна! Відправка даних:", data);
-           // Тут логіка відправки даних
-       } else {
-           console.log("Форма містить помилки.");
-            // Можна додати скрол до першої помилки або загальне повідомлення
-       }
-   };
+   const handleNotesChange = useCallback((e) => {
+    const { value } = e.target;
+    setFormData(prevData => ({
+        ...prevData,
+        notes: value 
+    }));
+    }, [setFormData]);
 
    return (
        <Box>
            {/* --- Розділ 6: Ліки --- */}
            <Box mb={4}>
                 <HStack justify="space-between" alignItems="center" mb={2}>
-                    <Heading size="sm">6. Ліки</Heading>
+                    {/* <Heading size="sm"> </Heading> */}
                     <Button leftIcon={<AddIcon />} colorScheme="purple" variant="outline" size="xs" onClick={addMedRow} isDisabled={isDisabled} aria-label="Додати запис про ліки">
-                        Додати
+                        Додати Ліки
                     </Button>
                 </HStack>
                 <VStack spacing={3} align="stretch">
                     {medicationsGivenData.length === 0 && ( // Показуємо завжди, коли порожньо
-                        <Text color={isDisabled ? "gray.400" : "gray.500"} fontSize="sm" textAlign="center" py={2}>Немає записів про ліки.</Text>
+                        <Text color={isDisabled ? "gray.400" : "gray.500"} fontSize="sm" textAlign="center" py={2}>Немає записів. Натисність "+ Додати Ліки", щоб додати.</Text>
                     )}
                     {medicationsGivenData.map((med) => (
                         <MedicationRow
@@ -503,7 +496,7 @@ function MedicationsSection({ data, setFormData, isDisabled }) {
 
             {/* --- Розділ H+E (Гіпотермія / Інше) --- */}
             <Box mt={2}>
-                 <Heading size="sm" mb={3}>H+E (Гіпотермія / Інше)</Heading>
+                 <Heading size="sm" mb={3}>HШЕ</Heading>
                  {/* Передаємо помилки в HypothermiaAidBlock, якщо вони є */}
                  <SimpleGrid columns={{ base: 1, md: 2 }} spacingX={6} spacingY={4} alignItems="start">
                      <Checkbox
@@ -548,6 +541,22 @@ function MedicationsSection({ data, setFormData, isDisabled }) {
                          // Можна передати помилки сюди: errors={aidErrors}
                     />
                  </SimpleGrid>
+            </Box>
+
+            <Divider my={4} borderColor="gray.200"/>
+
+            <Box>
+                <FormControl {...medicationsStyles.notesControl}>
+                        <FormLabel mb={3} fontWeight="bold" {...medicationsStyles.label}> Нотатки</FormLabel> {/* Use label style */}
+                        <Textarea
+                          name="notes"
+                          value={data?.notes || ''}
+                          onChange={handleNotesChange}
+                          isDisabled={isDisabled}
+                          placeholder="Додаткова інформація..."
+                          rows={3}
+                        />
+                      </FormControl>
             </Box>
        </Box>
    );

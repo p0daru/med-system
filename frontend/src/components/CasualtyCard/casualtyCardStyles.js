@@ -171,14 +171,11 @@ export const commonStyles = {
       colorScheme: "blue",
       size: "md",
     },
+  
   };
   
   // Styles for AdministrativeDataSection.jsx
   export const adminDataStyles = {
-    notesControl: {
-      id: "notes",
-      mb: 6,
-    },
     section8Heading: {
       ...commonStyles.headingSm, // Reuse common style
     },
@@ -200,7 +197,8 @@ export const commonStyles = {
     },
     // Combined styles for various labels in this section
     label: {
-      ...commonStyles.formLabelSm, // Reuse common style
+      // ...commonStyles.formLabelSm, // Reuse common style
+      // fontWeight: semibold,
     },
   };
   
@@ -293,6 +291,10 @@ export const commonStyles = {
     hypoPreventionVStack: {
        align:"stretch",
        spacing:1.5,
+    },
+    notesControl: {
+      id: "notes",
+      mb: 6,
     },
   };
   
