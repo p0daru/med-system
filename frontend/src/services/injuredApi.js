@@ -22,7 +22,7 @@ import axios from 'axios';
 const BACKEND_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5005'; // Або ваш локальний порт
 
 // 2. Визначаємо конкретний шлях для API карток поранених
-const CASUALTY_CARD_API_PATH = '/api/casualty-card'; // Змінено шлях
+const CASUALTY_CARD_API_PATH = '/api/casualty-cards'; // Змінено шлях
 
 // 3. Створюємо повну URL-адресу для запитів
 const API_ENDPOINT_URL = `${BACKEND_BASE_URL}${CASUALTY_CARD_API_PATH}`;

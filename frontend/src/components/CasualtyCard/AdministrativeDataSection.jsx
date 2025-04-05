@@ -1,136 +1,141 @@
 // src/components/CasualtyCard/AdministrativeDataSection.jsx
-import React, { useCallback } from 'react'; // Імпортуємо useCallback
+import React, { useEffect, useMemo, useCallback } from 'react'; // Додаємо хуки
+import { useForm, FormProvider } from 'react-hook-form'; // Імпортуємо RHF
+// Валідація не потрібна, тому yupResolver не імпортуємо
 import { Box, Heading, VStack, SimpleGrid, FormControl, FormLabel, Input, Divider } from '@chakra-ui/react';
-import { adminDataStyles, commonStyles } from './casualtyCardStyles'; 
+
+// Імпорти стилів та хелперів
+import { adminDataSectionStyles as styles } from './styles'; // Перевірте шлях!
+import { formatDateTime } from '../../utils/helpers'; // Перевірте шлях!
 
 function AdministrativeDataSection({ data, setFormData, isDisabled }) {
+    // --- RHF Setup ---
+    const methods = useForm({
+        // resolver не потрібен
+        defaultValues: useMemo(() => ({
+            providerFullName: data?.providerFullName || '',
+            providerLast4SSN: data?.providerLast4SSN || '',
+            // Поля аудиту (recordedBy, createdAt, updatedAt) не є частиною форми для редагування
+        }), [data]), // Залежимо від data
+        // mode: 'onChange', // Не потрібен без валідації
+    });
 
-  // Обробник для звичайних полів вводу
-  const handleChange = useCallback((e) => {
-    const { name, value } = e.target;
-    setFormData(prevData => ({ ...prevData, [name]: value }));
-  }, [setFormData]); // Залежність від setFormData
+    const { register, watch, reset, setValue } = methods; 
 
-  // Обробник для поля НСС, що дозволяє лише цифри та обмежує довжину
-  const handleSsnChange = useCallback((e) => {
-    const { name, value } = e.target;
-    // Видаляємо всі не-цифрові символи
-    const numericValue = value.replace(/\D/g, '');
-    // Обмежуємо довжину до 4 символів
-    const truncatedValue = numericValue.slice(0, 4);
-    setFormData(prevData => ({ ...prevData, [name]: truncatedValue }));
-  }, [setFormData]); // Залежність від setFormData
+    // --- Синхронізація: Зовнішні дані -> Форма RHF ---
+    useEffect(() => {
+        // Reset оновлює форму значеннями з data, коли data змінюється
+        reset({
+            providerFullName: data?.providerFullName || '',
+            providerLast4SSN: data?.providerLast4SSN || '',
+        });
+    }, [data, reset]); // Залежимо від data та reset
+
+    // --- Синхронізація: Форма RHF -> Зовнішній стан (setFormData) - ВИДАЛЕНО ---
+    // Батьківський компонент має сам отримувати дані
+
+    // --- Обробник для providerLast4SSN (використовуємо register + setValue) ---
+    const handleSsnChange = useCallback((e) => {
+        const { value } = e.target;
+        const filteredValue = value.replace(/\D/g, '').slice(0, 4);
+        setValue('providerLast4SSN', filteredValue, { shouldDirty: true });
+    }, [setValue]);
 
 
-  // Функція для форматування дати/часу
-  const formatDateTime = (isoString) => {
-    if (!isoString) return 'N/A';
-    try {
-      const dateObj = new Date(isoString);
-      if (isNaN(dateObj.getTime())) return 'Недійсна дата';
-      // Формат: 27.10.2023, 15:30
-      return dateObj.toLocaleString('uk-UA', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: false // 24-годинний формат
-      });
-    } catch (e) {
-      console.error("Помилка форматування дати:", isoString, e);
-      return 'Помилка';
-    }
-  };
-  return (
-    <Box>
+    // --- Рендеринг ---
+    return (
+        // Надаємо методи форми дочірнім (якщо будуть)
+        <FormProvider {...methods}>
+            <Box>
+                {/* --- Дані Провайдера --- */}
+                <Heading {...styles.sectionHeading}>Дані Особи, яка надала допомогу</Heading>
+                <SimpleGrid {...styles.providerGrid}>
+                    {/* --- ПІБ Провайдера (register) --- */}
+                    <FormControl id="providerFullName">
+                        <FormLabel {...styles.formLabel}>ПІБ (Прізвище, Ім'я)</FormLabel>
+                        <Input
+                            placeholder="Іваненко Іван"
+                            autoComplete="name"
+                            isDisabled={isDisabled}
+                            {...register('providerFullName')} // Реєструємо поле
+                            {...styles.inputSize}
+                        />
+                        {/* FormErrorMessage не потрібен без валідації */}
+                    </FormControl>
 
-      {/* Section 8: Provider Data */}
-      <Heading {...adminDataStyles.section8Heading}> Дані Особи, яка надала допомогу</Heading>
-      <SimpleGrid {...adminDataStyles.providerGrid}>
-        <FormControl id="providerFullName">
-          <FormLabel >ПІБ (Прізвище, Ім'я)</FormLabel> {/* Use label style */}
-          <Input
-            name="providerFullName"
-            value={data?.providerFullName || ''}
-            onChange={handleChange}
-            isDisabled={isDisabled}
-            placeholder="Іваненко Іван"
-            autoComplete="name"
-            {...commonStyles.inputSm} // Use common style
-          />
-        </FormControl>
-        <FormControl id="providerLast4SSN">
-          <FormLabel {...adminDataStyles.label}>Останні 4 НСС</FormLabel> {/* Use label style */}
-          <Input
-            name="providerLast4SSN"
-            value={data?.providerLast4SSN || ''}
-            onChange={handleSsnChange}
-            isDisabled={isDisabled}
-            placeholder="1234"
-            maxLength={4}
-            inputMode="numeric"
-             {...commonStyles.inputSm} // Use common style
-          />
-        </FormControl>
-      </SimpleGrid>
+                    {/* --- НСС Провайдера (register + кастомний onChange) --- */}
+                    <FormControl id="providerLast4SSN">
+                        <FormLabel {...styles.formLabel}>Останні 4 НСС</FormLabel>
+                        <Input
+                            {...register('providerLast4SSN')} // Реєструємо
+                            placeholder="1234"
+                            maxLength={4}
+                            inputMode="numeric"
+                            isDisabled={isDisabled}
+                            onChange={handleSsnChange} // Кастомний обробник
+                            value={watch('providerLast4SSN') ?? ''} // Контролюємо value
+                            {...styles.inputSize}
+                        />
+                         {/* FormErrorMessage не потрібен */}
+                    </FormControl>
+                </SimpleGrid>
 
-      <Divider my={4} borderColor="gray.200"/>
+                <Divider sx={styles.divider} />
 
-      {/* Administrative Info */}
-      {/* <Heading {...adminDataStyles.adminInfoHeading}>Адміністративна Інформація</Heading> */}
-      <VStack {...adminDataStyles.adminInfoVStack}>
-        <SimpleGrid {...adminDataStyles.timestampsGrid}>
-          {/* Recorded By */}
-          <FormControl id="recordedBy">
-            <FormLabel {...adminDataStyles.label}>Запис створив/редагував</FormLabel>
-            <Input
-              type="text"
-              name="recordedBy"
-              value={data?.recordedBy || 'Автоматично'}
-              isReadOnly
-              isDisabled // Visually disabled
-              _disabled={commonStyles.disabledInput} // Apply disabled style from common
-              placeholder="Користувач системи"
-               {...commonStyles.inputSm}
-            />
-          </FormControl>
+                {/* --- Адміністративна Інформація (Read Only) --- */}
+                <Heading {...styles.sectionHeading}>Адміністративна Інформація</Heading>
+                <VStack {...styles.adminInfoVStack}>
+                    <SimpleGrid {...styles.timestampsGrid}>
+                        {/* --- Запис створив --- */}
+                        <FormControl id="recordedBy">
+                            <FormLabel {...styles.formLabel}>Запис створив/редагував</FormLabel>
+                            <Input
+                                type="text"
+                                // Значення беремо напряму з data, бо це не редагується
+                                value={data?.recordedBy || 'Автоматично'}
+                                isReadOnly
+                                isDisabled // Візуально заблоковано
+                                {...styles.inputSize}
+                                sx={styles.readOnlyInput} // Застосовуємо стилі для read-only
+                            />
+                        </FormControl>
 
-          {/* Timestamps */}
-          {(data?.createdAt || data?.updatedAt) && (
-            <>
-              {data?.createdAt && (
-                <FormControl>
-                  <FormLabel {...adminDataStyles.label}>Час Створення Запису</FormLabel>
-                  <Input
-                    type="text"
-                    value={formatDateTime(data.createdAt)}
-                    isReadOnly
-                    isDisabled
-                    _disabled={commonStyles.disabledInput} // Apply disabled style
-                     {...commonStyles.inputSm}
-                  />
-                </FormControl>
-              )}
-              {data?.updatedAt && (
-                 <FormControl>
-                  <FormLabel {...adminDataStyles.label}>Час Останнього Оновлення</FormLabel>
-                  <Input
-                    type="text"
-                    value={formatDateTime(data.updatedAt)}
-                    isReadOnly
-                    isDisabled
-                     _disabled={commonStyles.disabledInput} // Apply disabled style
-                     {...commonStyles.inputSm}
-                  />
-                </FormControl>
-              )}
-            </>
-          )}
-        </SimpleGrid>
-      </VStack>
-    </Box>
-  );
+                        {/* --- Час Створення --- */}
+                        {data?.createdAt && (
+                            <FormControl>
+                                <FormLabel {...styles.formLabel}>Час Створення Запису</FormLabel>
+                                <Input
+                                    type="text"
+                                    // Форматуємо значення з data
+                                    value={formatDateTime(data.createdAt)}
+                                    isReadOnly
+                                    isDisabled
+                                    {...styles.inputSize}
+                                    sx={styles.readOnlyInput}
+                                />
+                            </FormControl>
+                        )}
+
+                        {/* --- Час Оновлення --- */}
+                        {data?.updatedAt && (
+                            <FormControl>
+                                <FormLabel {...styles.formLabel}>Час Останнього Оновлення</FormLabel>
+                                <Input
+                                    type="text"
+                                    // Форматуємо значення з data
+                                    value={formatDateTime(data.updatedAt)}
+                                    isReadOnly
+                                    isDisabled
+                                    {...styles.inputSize}
+                                    sx={styles.readOnlyInput}
+                                />
+                            </FormControl>
+                        )}
+                    </SimpleGrid>
+                </VStack>
+            </Box>
+        </FormProvider>
+    );
 }
 
 export default AdministrativeDataSection;
