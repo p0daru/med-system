@@ -1,196 +1,227 @@
 // routes/casualtyCard.routes.js
+
 const express = require('express');
 const router = express.Router();
-const mongoose = require('mongoose');
-const CasualtyCard = require('../models/CasualtyCard.model'); // Import the updated model
+const mongoose = require('mongoose'); // Потрібен для перевірки ObjectId
+const CasualtyCard = require('../models/CasualtyCard.model'); // Імпортуємо модель
 
-// --- Middleware for validating MongoDB ObjectIds in route parameters ---
+// --- Middleware для перевірки валідності MongoDB ObjectId ---
+// (Опціонально, але рекомендується для чистоти коду)
 const validateObjectId = (req, res, next) => {
-    const { id } = req.params;
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-        console.warn(`Invalid ObjectId received in URL parameter: ${id}`);
-        // Return a 400 Bad Request if the ID format is incorrect
-        return res.status(400).json({ message: "Невалідний формат ID запису" });
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+        return res.status(400).json({ message: 'Недійсний ID картки' });
     }
-    next(); // Proceed to the route handler if ID format is valid
+    next();
 };
 
-// --- POST /api/casualty-cards/ --- Create a new casualty card
+// --- Функція для об'єднання дати та часу з фронтенду ---
+const combineDateTime = (dateStr, timeStr) => {
+    if (!dateStr || !timeStr) {
+        // Якщо дата або час відсутні, не можемо створити повну дату
+        // Повертаємо null або можна повернути тільки дату, якщо вона є: new Date(dateStr)
+        // Для eventDateTime це може бути прийнятно, але для arrivalDateTime - ні (бо воно required)
+        return dateStr ? new Date(dateStr) : null; // Або повертати помилку, якщо потрібно
+    }
+    // 'Z' вказує, що час надано в UTC. Якщо фронтенд надсилає локальний час,
+    // може знадобитись інша логіка або використання бібліотек типу moment-timezone.
+    // Формат HH:MM очікується для timeStr.
+    try {
+      return new Date(`${dateStr}T${timeStr}:00Z`);
+    } catch(e) {
+      // Помилка парсингу дати/часу
+      console.error("Помилка парсингу дати/часу:", dateStr, timeStr, e);
+      return null; // або кидати помилку
+    }
+};
+
+
+// --- Маршрути ---
+
+// POST /api/casualty-cards - Створити нову картку постраждалого
 router.post('/', async (req, res) => {
-    // Log the incoming request body for debugging (consider redacting sensitive PII in production logs)
-    console.log('Received POST /api/casualty-cards/ request body:', JSON.stringify(req.body, null, 2));
+    const { patientData, status, /* інші поля картки */ } = req.body;
+
+    // Перевірка наявності обов'язкових даних patientData
+    if (!patientData) {
+        return res.status(400).json({ message: "Дані пацієнта (patientData) є обов'язковими" });
+    }
+
+    // Об'єднуємо дату/час з patientData
+    const eventDateTime = combineDateTime(patientData.eventDate, patientData.eventTime);
+    const arrivalDateTime = combineDateTime(patientData.arrivalDate, patientData.arrivalTime);
+
+    // Перевірка, чи вдалося створити обов'язкову дату прибуття
+    if (!arrivalDateTime) {
+         return res.status(400).json({ message: "Некоректна або неповна дата/час прибуття" });
+    }
+     // Перевірка, чи вдалося створити дату події (якщо вона була передана)
+    if ((patientData.eventDate || patientData.eventTime) && !eventDateTime) {
+        return res.status(400).json({ message: "Некоректна або неповна дата/час події" });
+    }
+
+    // Створюємо об'єкт patientData для збереження, видаляючи розділені поля
+    const patientDataToSave = {
+        ...patientData,
+        eventDateTime: eventDateTime, // Зберегти об'єднану дату/час події
+        arrivalDateTime: arrivalDateTime, // Зберегти об'єднану дату/час прибуття
+    };
+    // Видаляємо тимчасові поля, які використовувались лише для передачі
+    delete patientDataToSave.eventDate;
+    delete patientDataToSave.eventTime;
+    delete patientDataToSave.arrivalDate;
+    delete patientDataToSave.arrivalTime;
+
 
     try {
-        // Create a new Mongoose document directly from the request body.
-        // Mongoose will only pick fields defined in the schema.
-        // Frontend is responsible for sending data structured according to the schema.
-        const newCard = new CasualtyCard(req.body);
+        const newCasualtyCard = new CasualtyCard({
+            patientData: patientDataToSave,
+            status: status || 'active', // Статус за замовчуванням, якщо не передано
+            // createdBy: req.user._id, // Якщо у вас є автентифікація і req.user
+            // ... інші поля, які передаються з req.body
+        });
 
-        // Mongoose's .save() method automatically runs schema validations.
-        const savedCard = await newCard.save();
+        const savedCard = await newCasualtyCard.save();
 
-        console.log('Casualty Card created successfully with ID:', savedCard._id);
-        // Respond with 201 Created status and the newly created document.
-        // Frontend uses the returned _id to navigate to the edit page.
+        // Важливо: Mongoose автоматично заповнить віртуальні поля при перетворенні в JSON
         res.status(201).json(savedCard);
-
     } catch (error) {
-        console.error('Error creating casualty card:', error);
         if (error.name === 'ValidationError') {
-            // If Mongoose validation fails, collect error messages.
-            const messages = Object.values(error.errors).map(val => val.message);
-            console.warn('Validation Errors:', messages);
-            return res.status(400).json({ message: "Помилка валідації даних", errors: messages });
+            // Обробка помилок валідації Mongoose
+             console.error('Помилка валідації:', error.errors);
+            return res.status(400).json({ message: 'Помилка валідації даних', errors: error.errors });
         }
-        // Handle other potential server errors during creation.
-        res.status(500).json({ message: "Помилка сервера при створенні картки", error: error.message });
+        console.error('Помилка створення картки:', error);
+        res.status(500).json({ message: 'Помилка сервера при створенні картки' });
     }
 });
 
-// --- GET /api/casualty-cards/ --- Get a list of casualty cards (with optional search)
+// GET /api/casualty-cards - Отримати список всіх карток
 router.get('/', async (req, res) => {
     try {
-        const { search } = req.query; // Get search term from query parameters (e.g., /api/casualty-cards?search=Smith)
-        let query = {}; // Mongoose query object, initially empty (find all)
-
-        if (search && search.trim() !== '') {
-            // Use case-insensitive regex search on indexed fields if a search term is provided.
-            // '^' anchors the search to the beginning of the string.
-            // Escape special regex characters in the user input to prevent errors/injection.
-            const escapedSearch = search.trim().replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
-            const searchRegex = new RegExp('^' + escapedSearch, 'i');
-
-            // Search across multiple relevant fields
-            query = {
-                $or: [
-                    { patientFullName: searchRegex },
-                    { individualNumber: searchRegex },
-                    { last4SSN: searchRegex }
-                    // Add more fields here if needed, e.g., { unit: searchRegex }
-                ]
-            };
-            console.log(`Executing search with regex: ${searchRegex}`);
-        } else {
-             console.log('Fetching all casualty cards (no search term).');
-        }
-
-        // Execute the find query
-        const cards = await CasualtyCard.find(query)
-            .sort({ createdAt: -1 }) // Sort by creation date, newest first (default)
-            .select('-__v')           // Exclude the __v version key from the result
-            .lean();                  // Use .lean() for faster read operations (returns plain JS objects)
-
-        console.log(`Found ${cards.length} casualty cards.`);
+        // Додайте .populate(), якщо потрібно отримати дані з пов'язаних колекцій (напр. користувача)
+        // const cards = await CasualtyCard.find().populate('createdBy', 'username email');
+        const cards = await CasualtyCard.find();
         res.status(200).json(cards);
-
     } catch (error) {
-        console.error('Error fetching casualty cards:', error);
-        res.status(500).json({ message: "Помилка сервера при отриманні списку карток", error: error.message });
+        console.error('Помилка отримання списку карток:', error);
+        res.status(500).json({ message: 'Помилка сервера при отриманні списку карток' });
     }
 });
 
-// --- GET /api/casualty-cards/:id --- Get a single casualty card by its MongoDB _id
-router.get('/:id', validateObjectId, async (req, res) => { // Apply ObjectId validation middleware
-    const { id } = req.params;
-    console.log(`Received GET /api/casualty-cards/${id} request.`);
-
+// GET /api/casualty-cards/:id - Отримати одну картку за ID
+router.get('/:id', validateObjectId, async (req, res) => { // Використовуємо middleware
     try {
-        const card = await CasualtyCard.findById(id)
-            .select('-__v') // Exclude the version key
-            .lean();        // Return plain JS object
+        const card = await CasualtyCard.findById(req.params.id);
+        // .populate('createdBy lastUpdatedBy'); // Якщо потрібно
 
         if (!card) {
-            console.log(`Casualty Card not found for ID: ${id}`);
-            return res.status(404).json({ message: "Картку з таким ID не знайдено" });
+            return res.status(404).json({ message: 'Картку постраждалого не знайдено' });
         }
-
-        console.log(`Successfully fetched casualty card with ID: ${id}`);
-        res.status(200).json(card); // Respond with the found card data
-
+        // Віртуальні поля будуть автоматично додані при відправці JSON
+        res.status(200).json(card);
     } catch (error) {
-        console.error(`Error fetching casualty card with ID ${id}:`, error);
-        res.status(500).json({ message: "Помилка сервера при отриманні картки", error: error.message });
+        console.error(`Помилка отримання картки ${req.params.id}:`, error);
+        res.status(500).json({ message: 'Помилка сервера при отриманні картки' });
     }
 });
 
- // --- PUT /api/casualty-cards/:id --- Update an existing casualty card by ID
- router.put('/:id', validateObjectId, async (req, res) => { // Apply ObjectId validation middleware
-     const { id } = req.params;
-     const updateData = req.body; // Get the update payload from the request body
+// PUT /api/casualty-cards/:id - Оновити існуючу картку за ID
+router.put('/:id', validateObjectId, async (req, res) => {
+    const { patientData, status, /* інші поля */ } = req.body;
 
-     console.log(`Received PUT /api/casualty-cards/${id} request.`);
-     // Log update data carefully in production due to PII
-     // console.log('Update data received:', JSON.stringify(updateData, null, 2));
+    if (!patientData) {
+        return res.status(400).json({ message: "Дані пацієнта (patientData) є обов'язковими для оновлення" });
+    }
 
-     // --- Data Sanitization ---
-     // Prevent modification of certain fields by explicitly removing them from the update payload.
-     // While findByIdAndUpdate won't update _id, explicitly removing helps clarity and safety.
-     // individualNumber is often immutable after creation, so we prevent updates here, aligning with frontend logic.
-     delete updateData._id;
-     delete updateData.createdAt;
-     delete updateData.updatedAt;
-     delete updateData.__v;
-     delete updateData.individualNumber; // Prevent changing the individual number via update
-
-     try {
-         // Find the document by ID and update it with the sanitized data.
-         const updatedCard = await CasualtyCard.findByIdAndUpdate(
-             id,
-             { $set: updateData }, // Use $set to update only the fields provided in updateData
-             {
-                 new: true, // Return the modified document rather than the original
-                 runValidators: true, // Ensure schema validations run on update
-                 context: 'query',    // Necessary for certain validation contexts
-                 omitUndefined: true  // Prevents $unset behavior for fields not in updateData
-             }
-         ).select('-__v').lean(); // Exclude version key and return plain object
-
-         if (!updatedCard) {
-             console.log(`Casualty Card not found for update with ID: ${id}`);
-             return res.status(404).json({ message: "Картку з таким ID не знайдено для оновлення" });
+    // Об'єднуємо дату/час з patientData, якщо вони передані для оновлення
+    let eventDateTime = patientData.eventDateTime; // Зберігаємо існуюче значення за замовчуванням
+    if (patientData.eventDate || patientData.eventTime) {
+        eventDateTime = combineDateTime(patientData.eventDate, patientData.eventTime);
+         if ((patientData.eventDate || patientData.eventTime) && !eventDateTime) {
+             return res.status(400).json({ message: "Некоректна або неповна дата/час події для оновлення" });
          }
+    }
 
-         console.log('Casualty Card updated successfully:', updatedCard._id);
-         res.status(200).json(updatedCard); // Respond with the updated document
+    let arrivalDateTime = patientData.arrivalDateTime; // Зберігаємо існуюче значення за замовчуванням
+    if (patientData.arrivalDate || patientData.arrivalTime) {
+        arrivalDateTime = combineDateTime(patientData.arrivalDate, patientData.arrivalTime);
+         if (!arrivalDateTime) { // Дата прибуття - обов'язкова
+             return res.status(400).json({ message: "Некоректна або неповна дата/час прибуття для оновлення" });
+         }
+    }
 
-     } catch (error) {
-         console.error(`Error updating casualty card with ID ${id}:`, error);
-         if (error.name === 'ValidationError') {
-             const messages = Object.values(error.errors).map(val => val.message);
-             console.warn('Validation Errors on Update:', messages);
-             return res.status(400).json({ message: "Помилка валідації даних при оновленні", errors: messages });
-         }
-         if (error.name === 'CastError') {
-             // Handle errors where data type doesn't match schema (e.g., string where number expected)
-             console.warn(`Cast Error on Update (Path: ${error.path}, Value: ${error.value}):`, error.message);
-             return res.status(400).json({ message: `Некоректний тип даних для поля: ${error.path}`, error: error.message });
-         }
-         // Handle other potential server errors during update.
-         res.status(500).json({ message: "Помилка сервера при оновленні картки", error: error.message });
+
+    // Створюємо об'єкт для оновлення
+     const updateData = {
+         patientData: {
+             ...patientData, // Беремо всі інші дані з patientData
+             eventDateTime: eventDateTime,
+             arrivalDateTime: arrivalDateTime,
+         },
+         status: status, // Оновлюємо статус, якщо передано
+         // lastUpdatedBy: req.user._id, // Якщо є автентифікація
+         // ... інші поля для оновлення
+     };
+
+     // Видаляємо тимчасові поля з об'єкту оновлення
+     delete updateData.patientData.eventDate;
+     delete updateData.patientData.eventTime;
+     delete updateData.patientData.arrivalDate;
+     delete updateData.patientData.arrivalTime;
+
+     // Очищаємо null/undefined поля з updateData, щоб не перезаписувати існуючі значення
+     // (Опціонально, залежить від бажаної поведінки PUT - повна заміна чи часткове оновлення)
+     // Наприклад, якщо status не передано, не оновлювати його:
+     if (updateData.status === undefined) {
+        delete updateData.status;
      }
- });
+     // Можна зробити подібне і для полів всередині patientData, якщо потрібно
 
-// --- DELETE /api/casualty-cards/:id --- Delete a casualty card by ID
-router.delete('/:id', validateObjectId, async (req, res) => { // Apply ObjectId validation middleware
-    const { id } = req.params;
-    console.log(`Received DELETE /api/casualty-cards/${id} request.`);
 
     try {
-        const deletedCard = await CasualtyCard.findByIdAndDelete(id);
+        const updatedCard = await CasualtyCard.findByIdAndUpdate(
+            req.params.id,
+            { $set: updateData }, // Використовуємо $set для оновлення конкретних полів
+            {
+                new: true, // Повернути оновлений документ
+                runValidators: true, // Запустити валідатори Mongoose при оновленні
+                context: 'query' // Потрібно для деяких валідаторів, особливо умовних
+            }
+        );
 
-        if (!deletedCard) {
-            console.log(`Casualty Card not found for deletion with ID: ${id}`);
-            return res.status(404).json({ message: "Картку з таким ID не знайдено для видалення" });
+        if (!updatedCard) {
+            return res.status(404).json({ message: 'Картку постраждалого не знайдено для оновлення' });
         }
 
-        console.log('Casualty Card deleted successfully:', id);
-        // Respond with a success message and the ID of the deleted card.
-        res.status(200).json({ message: "Картку успішно видалено", id: id });
-
+        res.status(200).json(updatedCard); // Відправляємо оновлену картку з віртуальними полями
     } catch (error) {
-        console.error(`Error deleting casualty card with ID ${id}:`, error);
-        res.status(500).json({ message: "Помилка сервера при видаленні картки", error: error.message });
+         if (error.name === 'ValidationError') {
+            console.error('Помилка валідації при оновленні:', error.errors);
+            return res.status(400).json({ message: 'Помилка валідації даних при оновленні', errors: error.errors });
+        }
+        console.error(`Помилка оновлення картки ${req.params.id}:`, error);
+        res.status(500).json({ message: 'Помилка сервера при оновленні картки' });
     }
 });
 
-module.exports = router; // Export the router to be used in the main server file
+// DELETE /api/casualty-cards/:id - Видалити картку за ID
+router.delete('/:id', validateObjectId, async (req, res) => {
+    try {
+        const deletedCard = await CasualtyCard.findByIdAndDelete(req.params.id);
+
+        if (!deletedCard) {
+            return res.status(404).json({ message: 'Картку постраждалого не знайдено для видалення' });
+        }
+
+        // Успішне видалення, можна повернути 204 No Content або 200 з повідомленням
+        res.status(200).json({ message: 'Картку постраждалого успішно видалено', cardId: req.params.id });
+        // або res.status(204).send();
+
+    } catch (error) {
+        console.error(`Помилка видалення картки ${req.params.id}:`, error);
+        res.status(500).json({ message: 'Помилка сервера при видаленні картки' });
+    }
+});
+
+
+module.exports = router;

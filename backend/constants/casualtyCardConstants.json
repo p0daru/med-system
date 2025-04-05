@@ -1,0 +1,15 @@
+{
+    "GENDER_OPTIONS": ["Ч", "Ж"],
+    "CATEGORY_OPTIONS": ["цивільний", "військовослужбовець", "полонений"],
+    "MILITARY_RANKS": ["Рекрут", "Солдат", "Старший солдат", "..."],
+    "ALLERGY_STATUS_OPTIONS": ["ні", "невідомо", "так"],
+    "TRANSPORT_TYPES": ["Casevac", "MMPM", "Medevac"],
+    "ARRIVAL_SOURCES": ["місце події", "пункт збору поранених", "роль 1", "роль 2", "роль 3", "роль 4"],
+    "TRIAGE_CATEGORIES": [
+      "Невідкладні (I - Червоний / Immediate)",
+      "Термінові (II - Жовтий / Delayed)",
+      "Нетермінові (III - Зелений / Minor)",
+      "Очікуючі (IV - Синій / Expectant)",
+      "Загиблі (0 - Чорний / Deceased)"
+    ]
+  }

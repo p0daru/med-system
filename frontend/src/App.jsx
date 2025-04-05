@@ -4,9 +4,12 @@ import { Routes, Route, Link as RouterLink } from 'react-router-dom'; // Імп�
 import { Box, Container, Heading, Flex, Link as ChakraLink, Spacer } from '@chakra-ui/react'; // Компоненти Chakra
 
 // Імпортуємо ваші сторінки/компоненти
-import CasualtyCard from './components/CasualtyCard/CasualtyCard';
+// import CasualtyCard from './components/CasualtyCard/CasualtyCard';
 import CasualtyLog from './components/CasualtyLog/CasualtyLog';
 // import CasualtyDetailPage from './pages/CasualtyDetailPage';
+
+import PatientCard from './components/PatientCard/PatientCard';
+import PatientDataSection from './components/PatientCard/PatientDataSection/PatientDataSection';
 import Sidebar from './components/Sidebar/Sidebar'; 
 
 function App() {
@@ -31,17 +34,22 @@ function App() {
         {/* Визначення Маршрутів залишається тут */}
         <Routes>
           {/* Головна сторінка - показує список */}
-          {/* <Route path="/" element={<CasualtyListPage />} /> */}
-          <Route path="/" element={<CasualtyLog />} />
+          {/* <Route path="/" element={<CasualtyLog />} />
 
-          {/* Сторінка для додавання нового запису */}
           <Route path="/add-casualty" element={<CasualtyCard />} />
 
-          {/* Додати мед-картку */}
           <Route path="/casualty/new" element={<CasualtyCard />} />
 
-          {/* Редагування */}
-          <Route path="/casualty/:id" element={<CasualtyCard />} />
+          <Route path="/casualty/:id" element={<CasualtyCard />} /> */}
+
+          <Route path="/" element={<CasualtyLog />} />
+
+          <Route path="/add-casualty" element={<PatientCard />} />
+
+          {/* <Route path="/casualty/new" element={<PatientCard />} />
+
+          <Route path="/casualty/:id" element={<PatientCard />} /> */}
+
 
           {/* Деталі */}
           {/* <Route path="/casualty/:id" element={<CasualtyDetailPage />} /> */}
@@ -50,12 +58,14 @@ function App() {
           {/* <Route path="/edit-casualty/:id" element={<CasualtyCard />} /> */}
 
           {/* Додамо маршрут для сторінки звітів (поки що заглушка) */}
-          <Route path="/reports" element={
-            <Box>
-              <Heading size="lg">Генерація Звітів</Heading>
-              <Text mt={4}>Ця сторінка знаходиться в розробці.</Text>
-            </Box>
-          } />
+          <Route path="/reports" 
+          // element={
+          //   <Box>
+          //     <Heading size="lg">Генерація Звітів</Heading>
+          //     <Text mt={4}>Ця сторінка знаходиться в розробці.</Text>
+          //   </Box>
+          // }
+           />
 
           {/* Маршрут для неіснуючих сторінок (опціонально) */}
           {/* <Route path="*" element={<div>Сторінку не знайдено (404)</div>} /> */}
