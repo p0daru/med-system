@@ -4,92 +4,91 @@ const Schema = mongoose.Schema;
 
 // --- Sub-Schemas for Nested Data ---
 
-// Схема для одного запису про турнікет на кінцівці
+// Schema for a single tourniquet entry on a limb
 const tourniquetLimbSchema = new Schema({
-    time: { type: String, trim: true, default: '' }, // ГГ:ХХ
-    type: { type: String, trim: true, default: '' }  // CAT, SOFTT-W, SICH, Інше (значення) etc.
-}, { _id: false });
+    time: { type: String, trim: true, default: '' }, // HH:MM format expected from frontend
+    type: { type: String, trim: true, default: '' }  // e.g., CAT, SOFTT-W, SICH, or custom value from "Інше"
+}, { _id: false }); // No separate _id for each limb entry
 
-// Схема для одного запису життєвих показників
+// Schema for a single vital signs entry
 const vitalSignEntrySchema = new Schema({
-    time: { type: String, trim: true, required: true }, // ГГ:ХХ - обов'язковий
+    time: { type: String, trim: true, required: [true, 'Час є обов\'язковим для запису життєвих показників'] }, // HH:MM - Required if the entry exists
     pulse: { type: String, trim: true, default: '' },
     bp: { type: String, trim: true, default: '' },      // Systolic/Diastolic
     rr: { type: String, trim: true, default: '' },       // Respiratory Rate
     spO2: { type: String, trim: true, default: '' },     // SaO2 %
-    avpu: { type: String, enum: ['A', 'V', 'P', 'U', '', null], default: null }, // Додано ''
-    pain: { type: String, trim: true, default: '' }      // 0-10
-}, { _id: false });
+    avpu: { type: String, enum: ['A', 'V', 'P', 'U', '', null], default: null }, // Allow empty string or null for not selected
+    pain: { type: String, trim: true, default: '' }      // 0-10 scale expected
+}, { _id: false }); // No separate _id for each vital sign log entry
 
-// Схема для одного запису про введену рідину/кров
+// Schema for a single fluid/blood entry
 const fluidEntrySchema = new Schema({
-    time: { type: String, trim: true, default: '' },
-    name: { type: String, trim: true, default: '' },   // Включаючи значення "Інше..."
-    volume: { type: String, trim: true, default: '' }, // Об'єм (мл)
-    route: { type: String, trim: true, default: '' }   // Шлях введення
-}, { _id: false });
+    time: { type: String, trim: true, default: '' },    // HH:MM
+    name: { type: String, trim: true, default: '' },   // Includes custom values from "Інше..."
+    amount: { type: String, trim: true, default: '' }, // Renamed from 'volume' to match frontend (amount in ml)
+    route: { type: String, trim: true, default: '' }   // Route of administration
+}, { _id: false }); // No separate _id for each fluid entry
 
-// Схема для одного запису про введені ліки
+// Schema for a single medication entry
 const medicationEntrySchema = new Schema({
-    time: { type: String, trim: true, default: '' },
-    name: { type: String, trim: true, default: '' },   // Включаючи значення "Інше..."
-    dosage: { type: String, trim: true, default: '' }, // Доза (з одницями)
-    route: { type: String, trim: true, default: '' }   // Шлях введення
-}, { _id: false });
+    time: { type: String, trim: true, default: '' },   // HH:MM
+    name: { type: String, trim: true, default: '' },   // Includes custom values from "Інше..."
+    dose: { type: String, trim: true, default: '' },   // Renamed from 'dosage' to match frontend (dose with units)
+    route: { type: String, trim: true, default: '' }   // Route of administration
+}, { _id: false }); // No separate _id for each medication entry
 
 
-// --- Основна Схема Картки Пораненого ---
+// --- Main Casualty Card Schema ---
 const casualtyCardSchema = new Schema({
-    // Розділ 1: Дані Постраждалого
-    individualNumber: { // Часто генерується сервером або має бути унікальним
+    // Section 1: Patient Data
+    individualNumber: { // Often generated server-side or needs uniqueness validation depending on workflow
         type: String,
         trim: true,
-        index: true,
-        // unique: true, // Розкоментуйте, якщо номер має бути строго унікальним
-        // sparse: true // Дозволяє null/відсутнім значенням не порушувати unique constraint
+        index: true, // Index for faster lookups
+        // unique: true, // Uncomment if this number MUST be strictly unique across all cards
+        // sparse: true // Allows multiple null/absent values if unique constraint is enabled
     },
     patientFullName: { type: String, trim: true, default: '' },
-    last4SSN: { type: String, trim: true, default: '' }, // Валідація на фронтенді
-    gender: { type: String, enum: ['Ч', 'Ж', '', null], default: null },
-    injuryDateTime: { type: Date }, // Об'єднана Дата + Час поранення
-    branchOfService: { type: String, trim: true, default: '' }, // Включаючи значення "Інше"
+    last4SSN: { type: String, trim: true, default: '' }, // Frontend validates format/length
+    gender: { type: String, enum: ['Ч', 'Ж', '', null], default: null }, // Matches frontend options
+    injuryDateTime: { type: Date }, // Combined Date + Time stored as ISO Date in DB
+    branchOfService: { type: String, trim: true, default: '' }, // Stores the final value (e.g., "Армія" or custom value)
     unit: { type: String, trim: true, default: '' },
-    allergies: { // Структура для алергій
-        nka: { type: Boolean, default: false },
-        known: { // Об'єкт з відомими алергіями (ключ: назва, значення: true)
-            type: Map,
-            of: Boolean, // Значення завжди буде true, якщо ключ існує
+    allergies: { // Structure for allergies
+        nka: { type: Boolean, default: false }, // No Known Allergies flag
+        known: { // Object storing known allergies (key: allergen name, value: true)
+            type: Map, // Using Map to store dynamic key-value pairs
+            of: Boolean, // Value will always be true if the key exists
             default: {}
         },
-        other: { type: String, trim: true, default: '' } // Поле для деталей або інших алергій
+        other: { type: String, trim: true, default: '' } // Field for details or non-standard allergies
     },
     evacuationPriority: {
         type: String,
-        // required: [true, 'Пріоритет евакуації обов\'язковий'], // Якщо потрібно
-        enum: ['Невідкладна', 'Пріоритетна', 'Звичайна', '', null], // Додано ''
-        default: 'Пріоритетна'
+        enum: ['Невідкладна', 'Пріоритетна', 'Звичайна', '', null], // Matches frontend options
+        default: 'Пріоритетна' // Default value as set in frontend
     },
 
-    // Розділ 2: Інформація про Поранення
-    mechanismOfInjury: { type: [String], default: [] }, // Масив рядків
-    mechanismOfInjuryOther: { type: String, trim: true, default: '' },
-    injuryDescription: { type: String, trim: true, default: '' },
+    // Section 2: Injury Information
+    mechanismOfInjury: { type: [String], default: [] }, // Array of selected mechanism strings
+    mechanismOfInjuryOther: { type: String, trim: true, default: '' }, // Details for "Other" mechanism
+    injuryDescription: { type: String, trim: true, default: '' }, // Free text description
 
-    // Розділ 3: Турнікети
-    tourniquets: { // Об'єкт з ключами за кінцівками
-        rightArm: { type: tourniquetLimbSchema, default: () => ({}) }, // Важливо мати дефолт
+    // Section 3: Tourniquets (as handled in frontend Section 2 Panel)
+    tourniquets: { // Object keyed by limb name
+        rightArm: { type: tourniquetLimbSchema, default: () => ({}) }, // Default to empty object
         leftArm:  { type: tourniquetLimbSchema, default: () => ({}) },
         rightLeg: { type: tourniquetLimbSchema, default: () => ({}) },
         leftLeg:  { type: tourniquetLimbSchema, default: () => ({}) }
     },
 
-    // Розділ 4: Життєві показники (масив записів)
+    // Section 4: Vital Signs (Array of entries)
     vitalSigns: {
         type: [vitalSignEntrySchema],
-        default: []
+        default: [] // Default to empty array
     },
 
-    // Розділ 5: Надана Допомога (MARCH)
+    // Section 5: Provided Aid (MARCH protocol checkboxes & fluids)
     aidCirculation: { // C - Circulation Checkboxes
         tourniquetJunctional: { type: Boolean, default: false },
         tourniquetTruncal:    { type: Boolean, default: false },
@@ -98,54 +97,55 @@ const casualtyCardSchema = new Schema({
         dressingOther:        { type: Boolean, default: false }
     },
     aidAirway: { // A - Airway Checkboxes
-        // intact: { type: Boolean, default: false }, // Часто не зберігається, якщо інші позначені
-        npa:          { type: Boolean, default: false },
-        cric:         { type: Boolean, default: false },
-        etTube:       { type: Boolean, default: false },
-        supraglottic: { type: Boolean, default: false }
+        // 'intact' checkbox usually not stored if other interventions are marked
+        npa:          { type: Boolean, default: false }, // Nasopharyngeal Airway
+        cric:         { type: Boolean, default: false }, // Cricothyroidotomy
+        etTube:       { type: Boolean, default: false }, // Endotracheal Tube
+        supraglottic: { type: Boolean, default: false } // Supraglottic Airway
     },
     aidBreathing: { // B - Breathing Checkboxes
-        o2:                  { type: Boolean, default: false },
-        needleDecompression: { type: Boolean, default: false },
-        chestTube:           { type: Boolean, default: false },
-        occlusiveDressing:   { type: Boolean, default: false }
+        o2:                  { type: Boolean, default: false }, // Oxygen given
+        needleDecompression: { type: Boolean, default: false }, // Needle Decompression performed
+        chestTube:           { type: Boolean, default: false }, // Chest Tube inserted
+        occlusiveDressing:   { type: Boolean, default: false } // Occlusive Dressing applied
     },
-    fluidsGiven: { // C - Fluids/Blood (масив записів)
+    fluidsGiven: { // C - Fluids/Blood (Array of entries)
         type: [fluidEntrySchema],
         default: []
     },
 
-    // Розділ 6: Ліки та Інша Допомога (H+E)
-    medicationsGiven: { // Ліки (масив записів)
+    // Section 6: Medications & Other Aid (H+E protocol elements)
+    medicationsGiven: { // Medications (Array of entries)
         type: [medicationEntrySchema],
         default: []
     },
-    aidHypothermiaOther: { // H+E - Hypothermia/Other Checkboxes + Type
+    aidHypothermiaOther: { // H+E - Hypothermia Prevention / Head Injury / Other
         combatPillPack:         { type: Boolean, default: false },
         eyeShieldRight:         { type: Boolean, default: false },
         eyeShieldLeft:          { type: Boolean, default: false },
         splinting:              { type: Boolean, default: false },
-        hypothermiaPrevention:  { type: Boolean, default: false },
-        hypothermiaPreventionType: { type: String, trim: true, default: '' } // Включаючи значення "Інше"
+        hypothermiaPrevention:  { type: Boolean, default: false }, // Checkbox if any prevention used
+        hypothermiaPreventionType: { type: String, trim: true, default: '' } // Stores type (e.g., "Blanket", "Custom Value")
     },
 
-    // Розділ 7: Нотатки
+    // Section 7: Notes (as handled in frontend Section 6 Panel)
     notes: { type: String, trim: true, default: '' },
 
-    // Розділ 8: Дані Медика / Особи, яка надала допомогу
+    // Section 8: Provider Data (as handled in frontend Section 6 Panel)
     providerFullName: { type: String, trim: true, default: '' },
-    providerLast4SSN: { type: String, trim: true, default: '' }, // Валідація на фронтенді
+    providerLast4SSN: { type: String, trim: true, default: '' }, // Frontend validates format/length
 
-    // Системні поля
-    recordedBy: { type: String, trim: true, default: '' } // Може бути ID користувача або ім'я
+    // System Fields
+    recordedBy: { type: String, trim: true, default: '' } // Could be User ID or name from auth context
 
 }, {
-    timestamps: true, // Додає createdAt та updatedAt автоматично
-    minimize: false // Важливо: зберігати порожні об'єкти (напр., tourniquets), якщо вони мають default
+    timestamps: true, // Automatically add createdAt and updatedAt fields
+    minimize: false   // Crucial: Ensures that empty objects (like tourniquets with default empty schemas) are saved to DB
 });
 
-// Створення індексу для пошуку за ПІБ (text index для гнучкого пошуку)
-casualtyCardSchema.index({ patientFullName: 'text', individualNumber: 'text', last4SSN: 'text' });
+// Create indexes for efficient searching based on frontend list view filters/search
+casualtyCardSchema.index({ patientFullName: 'text', individualNumber: 'text', last4SSN: 'text' }); // Text index for search bar
+casualtyCardSchema.index({ createdAt: -1 }); // Index for default sorting
 
 const CasualtyCard = mongoose.model('CasualtyCard', casualtyCardSchema);
 

@@ -45,7 +45,7 @@ app.get('/', (req, res) => {
 });
 
 // Підключаємо маршрути для роботи з даними про поранених
-app.use('/api/casualty-card', casualtyCardRoutes); // Підключаємо маршрути за префіксом /api/injured
+app.use('/api/casualty-cards', casualtyCardRoutes); // Підключаємо маршрути за префіксом /api/injured
 
 
 // Запуск сервера
