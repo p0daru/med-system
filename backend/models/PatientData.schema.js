@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
 
 // --- Schema for Section 1: Patient Data ---
-export default patientDataSchema = new Schema({
+const patientDataSchema = new Schema({
   // --- 1.1 Ідентифікація та основні дані ---
   isUnknown: {
     type: Boolean,
@@ -18,29 +18,19 @@ export default patientDataSchema = new Schema({
     // required: [true, "Категорія є обов'язковою"],
     // enum: ['Цивільний', 'Військовослужбовець', 'Полонений'],
   },
-  lastName: {
+  fullName: {
     type: String,
     trim: true,
-    // Необов'язкове, якщо isUnknown=true
-    // required: function() { return !this.isUnknown; } // Валідацію краще робити на рівні API або додатка
+    // Не обов'язкове, якщо isUnknown=true (фронтенд це контролює)
   },
-  firstName: {
-    type: String,
-    trim: true,
-    // required: function() { return !this.isUnknown; }
-  },
-  patronymic: {
-    type: String,
-    trim: true,
+  dob: { // Date of birth
+    type: String, // Змінено на String для прямої відповідності input type="date" (YYYY-MM-DD)
+    // Не обов'язкове, якщо isUnknown=true
   },
   militaryId: {
     type: String,
     trim: true,
     // required: function() { return !this.isUnknown && this.category === 'military'; }
-  },
-  dob: { // Date of birth
-    type: Date,
-    // required: function() { return !this.isUnknown; }
   },
 
   // --- 1.2 Додаткова інформація ---
@@ -63,7 +53,7 @@ export default patientDataSchema = new Schema({
     type: String,
     trim: true,
     // Потрібно лише якщо allergyPresence = 'yes'
-    required: function() { return this.allergyPresence === 'yes'; }
+    // required: function() { return this.allergyPresence === 'yes'; }
   },
 
   // --- 1.3 Обставини та прибуття ---
@@ -75,35 +65,34 @@ export default patientDataSchema = new Schema({
   arrivalDateTime: {
       type: Date, // Буде зберігати і дату, і час прибуття
     //   required: [true, "Дата та час прибуття є обов'язковими"]
+    default: null,
   },
   transportType: {
     type: String,
     // enum: ['Casevac', 'MMPM', 'Medevac', 'other', null],
     default: null,
   },
-  arrivalSource: {
+  // --- Нова структура для місця прибуття ---
+  originType: {
     type: String,
-    // required: [true, "Джерело прибуття є обов'язковим"],
-    // enum: ['event_location', 'collection_point', 'role_1', 'role_2', 'role_3', 'role_4'],
-  },
-  // Поля, що залежать від arrivalSource (якщо це медичний підрозділ)
-  arrivedFromMedicalRole: {
-    type: String,
-    // enum: ['Роль 1', 'Роль 2', 'Роль 3', 'Роль 4', null],
-    default: null,
-    // Потрібно лише якщо arrivalSource є однією з ролей
-    // required: function() {
-    //   return ['Роль 1', 'Роль 2', 'Роль 3', 'Роль 4'].includes(this.arrivalSource);
-    // }
-  },
-  arrivedFromMedicalUnitName: {
+    // required: [true, "Тип джерела прибуття є обов'язковим"],
+    // enum: ['location', 'medical_unit'], // Відповідає RadioGroup на фронтенді
+},
+arrivalLocationName: { // Назва місця події / пункту збору
     type: String,
     trim: true,
-    // Потрібно лише якщо arrivalSource є однією з ролей
-    // required: function() {
-    //   return ['Роль 1', 'Роль 2', 'Роль 3', 'Роль 4'].includes(this.arrivalSource);
-    // }
-  },
+    // Це поле заповнюється лише якщо originType === 'location' (контроль на фронтенді)
+},
+medicalUnitName: { // Назва мед. підрозділу
+    type: String,
+    trim: true,
+    // Це поле заповнюється лише якщо originType === 'medical_unit' (контроль на фронтенді)
+},
+medicalRole: { // Роль мед. підрозділу
+    type: String,
+    // enum: ['Роль 1', 'Роль 2', 'Роль 3', 'Роль 4', '', null], // Синхронізувати з constants.medicalRoles
+    // Це поле заповнюється лише якщо originType === 'medical_unit' (контроль на фронтенді)
+},
 
   // --- 1.4 Медичне сортування ---
   triageCategory: {
@@ -114,3 +103,5 @@ export default patientDataSchema = new Schema({
   },
 }, { _id: false }); // _id: false - не створювати окремий ID для цього піддокумента
 
+// Експортуємо саму схему
+module.exports = patientDataSchema;

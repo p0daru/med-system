@@ -1,162 +1,206 @@
-// YourParentComponent.jsx (перейменовано в PatientCard.jsx)
+// PatientCard.jsx
 import React, { useState, useCallback } from 'react';
-import PatientDataSection from './PatientDataSection/PatientDataSection'; // Шлях до дочірнього компонента
-import { Box, Container, Button, HStack, useToast } from '@chakra-ui/react';
-// import axios from 'axios'; // Якщо використовуєте axios для API запитів
+import {
+    Box, Container, Button, HStack, useToast, VStack
+} from '@chakra-ui/react';
 
-// Початковий стан форми (для очищення)
-const initialFormData = {
-    isUnknown: false,
-    gender: '',
-    category: '',
-    fullName: '',
-    militaryId: '',
-    dob: '',
-    militaryRank: '',
-    militaryUnit: '',
-    allergyPresence: '',
-    allergyDetails: '',
-    eventDate: '', // Додано для повноти
-    eventTime: '', // Додано для повноти
-    arrivalDate: '', // Додано для повноти
-    arrivalTime: '', // Додано для повноти
-    transportType: '',
-    arrivalSource: '',
-    medicalRole: '',
-    medicalUnitName: '',
-    triageCategory: '',
-};
+// Імпорт констант
+// Припускаємо, що файл patientCardConstants.js знаходиться в тій же директорії, що і PatientCard.jsx
+// і експортує об'єкт constants, який містить initialFormData, medicationKeys, API_ENDPOINT і списки опцій
+import constants from './patientCardConstants'; // Змінено імпорт
+
+// Імпорт компонентів секцій
+import PatientDataSection from './PatientDataSection/PatientDataSection';
+import PriorAidSection from './PriorAidSection/PriorAidSection';
+
+// Перевіряємо, чи константи завантажились і мають потрібну структуру
+const initialFormDataToUse = constants?.initialFormData || {}; // Використовуємо initialFormData з констант або пустий об'єкт
+const medicationKeysToUse = constants?.priorAid?.medicationKeys || []; // Використовуємо ключі з констант або пустий масив
+const apiEndpointToUse = constants?.API_ENDPOINT || '/api/default-endpoint'; // Використовуємо API_ENDPOINT або дефолтний
 
 function PatientCard() {
-    // Стан форми тепер живе тут
-    const [formData, setFormData] = useState(initialFormData);
-    const [isSubmitting, setIsSubmitting] = useState(false); // Стан для блокування кнопки під час відправки
-    const toast = useToast(); // Для сповіщень
+   // --- State ---
+   const [formData, setFormData] = useState(initialFormDataToUse);
+   const [isSubmitting, setIsSubmitting] = useState(false);
+   const toast = useToast();
 
-    // --- Обробники змін (передаватимуться до PatientDataSection) ---
+   // --- Обробники Змін ---
 
-    // useCallback тут для оптимізації, щоб функції не створювались заново при кожному рендері,
-    // якщо PatientDataSection обгорнутий в React.memo (але тут це не критично)
-    const handleChange = useCallback((e) => {
-        const { name, value } = e.target;
-        setFormData((prevData) => ({
-            ...prevData,
-            [name]: value,
-        }));
-    }, []); // Пустий масив залежностей, бо функція не залежить від зовнішніх змінних (крім setFormData)
+   const handleChange = useCallback((e) => {
+       const { name, value } = e.target;
+       setFormData((prevData) => ({
+           ...prevData,
+           [name]: value,
+       }));
+   }, []);
 
-    const handleRadioChange = useCallback((name, value) => {
-        setFormData((prevData) => ({
-            ...prevData,
-            [name]: value,
-        }));
-    }, []);
+   const handleRadioChange = useCallback((name, value) => {
+       setFormData((prevData) => {
+           const newData = { ...prevData, [name]: value };
+           if (name === 'originType') {
+               newData.medicalUnitName = value === 'location' ? '' : prevData.medicalUnitName;
+               newData.medicalRole = value === 'location' ? '' : prevData.medicalRole;
+               newData.arrivalLocationName = value === 'medical_unit' ? '' : prevData.arrivalLocationName;
+           } else if (name === 'allergyPresence' && (value === 'Ні' || value === 'Невідомо')) {
+               newData.allergyDetails = '';
+           } else if (name === 'category' && value !== 'Військовослужбовець') {
+               newData.militaryId = '';
+               newData.militaryRank = '';
+               newData.militaryUnit = '';
+           }
+           return newData;
+       });
+   }, []);
 
-    const handleCheckboxChange = useCallback((e) => {
-        const { name, checked } = e.target;
-        setFormData((prevData) => ({
-            ...prevData,
-            [name]: checked,
-            // Логіка очищення полів при isUnknown=true - ОНОВЛЕНО
-            ...(name === 'isUnknown' && checked && {
-                fullName: '', // Очищуємо fullName
-                militaryId: '',
-                dob: '',
-            }),
-        }));
-    }, []);
+   const handleCheckboxChange = useCallback((e) => {
+       const { name, checked } = e.target;
+       setFormData((prevData) => ({
+           ...prevData,
+           [name]: checked,
+           ...(name === 'isUnknown' && checked && {
+               fullName: '',
+               militaryId: '',
+               dob: '',
+           }),
+       }));
+   }, []);
 
+   const handleNestedStateChange = useCallback((fieldPath, value) => {
+       setFormData(prevData => {
+           const keys = fieldPath.split('.');
+           const newData = structuredClone(prevData);
+           let currentLevel = newData;
+           for (let i = 0; i < keys.length - 1; i++) {
+               const currentKey = keys[i];
+                if (!currentLevel[currentKey]) {
+                   currentLevel[currentKey] = {};
+               }
+               currentLevel = currentLevel[currentKey];
+           }
+           const finalKey = keys[keys.length - 1];
+           currentLevel[finalKey] = value;
 
-    // --- Обробники кнопок ---
+           // Логіка Очищення для PriorAid
+           if (fieldPath === 'priorAid.aidProvider' && (value === 'Невідомо' || value === 'Не надавалась')) {
+                if (newData.priorAid) {
+                    newData.priorAid.aidTime = '';
+                    newData.priorAid.aidDate = '';
+                }
+           }
+           if (fieldPath === 'priorAid.interventions.otherIntervention' && !value) {
+                if (newData.priorAid?.interventions) {
+                    newData.priorAid.interventions.otherInterventionDetails = '';
+                }
+           }
+           medicationKeysToUse.forEach(key => {
+               if (fieldPath === `priorAid.medications.${key}.given` && !value) {
+                   if (newData.priorAid?.medications?.[key]) {
+                        newData.priorAid.medications[key].details = { dose: '', route: '', time: '' };
+                   }
+               }
+           });
 
-    const handleSave = async () => {
-        setIsSubmitting(true); // Блокуємо кнопку
-        console.log('Дані для відправки:', { patientData: formData }); // Логуємо дані у форматі, очікуваному бекендом
+           return newData;
+       });
+   }, []);
 
-        // --- Тут буде ваш API запит ---
+    // --- Дії Кнопок ---
+
+      // Оновлений handleSave, який відправляє ВЕСЬ поточний formData
+      const handleSave = async () => {
+        setIsSubmitting(true);
+        // Готуємо дані для відправки - тепер просто весь поточний formData
+        // Бекенд повинен бути готовий прийняти початкові/порожні значення для полів Секції 1
+        const dataToSend = { patientData: formData };
+        console.log('Дані для відправки (весь поточний formData):', JSON.stringify(dataToSend, null, 2));
+
+        // --- API Запит ---
         try {
-            // Приклад з використанням fetch (замініть '/api/casualty-cards' на ваш реальний ендпоінт)
-            const response = await fetch('/api/casualty-cards', { // Або ваш URL API
+            const response = await fetch(apiEndpointToUse, { // Використовуємо константу
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    // Додайте інші заголовки, якщо потрібно (наприклад, Authorization)
-                },
-                // Відправляємо дані в очікуваному бекендом форматі
-                body: JSON.stringify({ patientData: formData }),
+                headers: { 'Content-Type': 'application/json', /* + інші заголовки */ },
+                body: JSON.stringify(dataToSend), // Відправляємо весь об'єкт formData під ключем patientData
             });
 
             if (!response.ok) {
-                // Спробувати отримати деталі помилки з відповіді
-                const errorData = await response.json().catch(() => ({ message: 'Помилка відправки даних' }));
-                throw new Error(errorData.message || `HTTP помилка! статус: ${response.status}`);
+                let errorDetails = `HTTP помилка! статус: ${response.status}`;
+                try { const errorData = await response.json(); errorDetails = errorData.message || JSON.stringify(errorData); }
+                catch (parseError) { errorDetails = await response.text() || errorDetails; }
+                throw new Error(errorDetails);
             }
 
             const result = await response.json();
             console.log('Успішна відповідь:', result);
-
             toast({
                 title: 'Картку збережено.',
-                description: "Дані постраждалого успішно збережено.",
+                description: "Дані успішно збережено (Секція 1 з поточними/початковими значеннями).",
                 status: 'success',
                 duration: 5000,
                 isClosable: true,
+                position: 'top',
             });
-
-            // Опціонально: Очистити форму після успішного збереження
-            // handleClear();
-            // Або перенаправити користувача, або оновити список карток тощо.
-
+            // handleClear(); // Можна розкоментувати для очищення після збереження
         } catch (error) {
             console.error('Помилка при збереженні картки:', error);
             toast({
                 title: 'Помилка збереження.',
-                description: error.message || "Не вдалося зберегти дані. Спробуйте ще раз.",
+                description: error.message || "Не вдалося зберегти дані.",
                 status: 'error',
                 duration: 9000,
                 isClosable: true,
+                position: 'top',
             });
         } finally {
-            setIsSubmitting(false); // Розблоковуємо кнопку в будь-якому випадку
+            setIsSubmitting(false);
         }
-        // -----------------------------
+        // -----------------
     };
 
+
     const handleClear = () => {
-        setFormData(initialFormData); // Скидаємо стан до початкового
+        // Використовуємо initialFormDataToUse
+        setFormData(initialFormDataToUse);
         toast({
             title: 'Форму очищено.',
             status: 'info',
             duration: 3000,
             isClosable: true,
+            position: 'top',
         });
     };
 
+    // --- Рендеринг ---
     return (
-        <Container maxW="container.lg" py={5}>
-            <Box p={5} shadow="md" borderWidth="1px" borderRadius="md">
-                <PatientDataSection
-                    formData={formData}
-                    handleChange={handleChange}
-                    handleRadioChange={handleRadioChange}
-                    handleCheckboxChange={handleCheckboxChange}
-                    // Передаємо константи, якщо вони потрібні в дочірньому компоненті
-                    // constants={constants}
-                />
-                 <HStack mt={8} spacing={4} justify="flex-end">
-                    <Button onClick={handleClear} variant="outline" isDisabled={isSubmitting}>
-                        Очистити форму
+        <Container maxW="container.xl" py={6}>
+            <VStack spacing={8} align="stretch">
+                {/* --- Секція 1 --- */}
+                {/* <Box p={6} shadow="md" borderWidth="1px" borderRadius="lg">
+                    <PatientDataSection
+                        formData={formData}
+                        handleChange={handleChange}
+                        handleRadioChange={handleRadioChange}
+                        handleCheckboxChange={handleCheckboxChange}
+                    />
+                </Box> */}
+
+                {/* --- Секція 2 --- */}
+                <Box p={6} shadow="md" borderWidth="1px" borderRadius="lg">
+                    <PriorAidSection
+                         formData={formData}
+                         handleNestedStateChange={handleNestedStateChange}
+                    />
+                </Box>
+
+                {/* --- Кнопки --- */}
+               <HStack spacing={5} justify="flex-end" mt={2}>
+                    <Button onClick={handleClear} variant="outline" isDisabled={isSubmitting} minW="120px">
+                        Очистити
                     </Button>
-                    <Button
-                        colorScheme="blue"
-                        onClick={handleSave}
-                        isLoading={isSubmitting}
-                        loadingText="Збереження..."
-                    >
+                    <Button colorScheme="blue" onClick={handleSave} isLoading={isSubmitting} loadingText="Збереження..." minW="150px">
                         Зберегти картку
                     </Button>
                 </HStack>
-            </Box>
+            </VStack>
         </Container>
     );
 }
