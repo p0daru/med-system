@@ -1,114 +1,158 @@
-// src/components/Sidebar/Sidebar.jsx
+// frontend/src/components/Sidebar/Sidebar.jsx
 import React from 'react';
 import {
     Box,
     VStack,
     Link as ChakraLink,
-    Heading,
-    Icon,
     Text,
-    IconButton, // <-- Імпорт IconButton
-    useColorMode, // <-- Імпорт хука теми
-    Flex,         // <-- Для гнучкого розташування
-    // Spacer,    // <-- Можна використовувати Spacer або flexGrow
+    Icon,
+    Divider,
+    Heading,
+    Drawer,
+    DrawerBody,
+    DrawerHeader,
+    DrawerOverlay,
+    DrawerContent,
+    DrawerCloseButton,
+    useColorModeValue
 } from '@chakra-ui/react';
-import { Link as RouterLink, useLocation } from 'react-router-dom';
-import { ViewIcon, AddIcon, DownloadIcon, SunIcon, MoonIcon } from '@chakra-ui/icons'; // <-- Додаємо іконки теми
+import { NavLink as RouterNavLink } from 'react-router-dom';
+import {
+    TimeIcon,       // Для Журналу Карт
+    SettingsIcon,   // Для Налаштувань
+    AttachmentIcon  // Для Звітів
+    // Можна додати AddIcon, якщо потрібне посилання "Нова Картка" в сайдбарі
+    // import { AddIcon } from '@chakra-ui/icons';
+} from '@chakra-ui/icons';
 
-// --- Компонент NavItem (трохи оновлений для тем) ---
-const NavItem = ({ icon, to, children }) => {
-  const location = useLocation();
-  const isActive = location.pathname === to;
-  const { colorMode } = useColorMode(); // Отримуємо поточний режим
+// Компонент для елемента навігації
+const NavItem = ({ icon, children, to, onClose, ...rest }) => {
+    const activeBg = useColorModeValue("red.100", "red.700");
+    const activeColor = useColorModeValue("red.700", "white");
+    const hoverBg = useColorModeValue("gray.100", "gray.700");
 
-  // Визначаємо кольори залежно від теми
-  const activeBg = colorMode === 'light' ? 'blue.100' : 'blue.800';
-  const activeColor = colorMode === 'light' ? 'blue.700' : 'blue.100';
-  const inactiveColor = colorMode === 'light' ? 'gray.700' : 'gray.200';
-  const hoverBg = colorMode === 'light' ? 'gray.200' : 'gray.700';
-  const hoverColor = colorMode === 'light' ? 'gray.900' : 'white';
-
-  return (
-    <ChakraLink
-      as={RouterLink}
-      to={to}
-      p={3}
-      borderRadius="md"
-      display="flex"
-      alignItems="center"
-      fontWeight="medium"
-      bg={isActive ? activeBg : 'transparent'} // Активний фон
-      color={isActive ? activeColor : inactiveColor} // Колір тексту
-      _hover={{
-        bg: hoverBg,
-        textDecoration: 'none',
-        color: hoverColor,
-      }}
-      _focus={{ boxShadow: 'outline' }}
-    >
-      {icon && <Icon as={icon} mr={3} w={5} h={5} />}
-      <Text>{children}</Text>
-    </ChakraLink>
-  );
+    return (
+        <ChakraLink
+            as={RouterNavLink}
+            to={to}
+            onClick={onClose} // Закриваємо Drawer при кліку на посилання
+            style={({ isActive }) => ({
+                backgroundColor: isActive ? activeBg : undefined,
+                color: isActive ? activeColor : undefined,
+                fontWeight: isActive ? 'bold' : 'normal'
+            })}
+            _hover={{
+                textDecoration: 'none',
+                bg: hoverBg,
+            }}
+            display="flex"
+            alignItems="center"
+            p="3"
+            mx="2" // Невеликий відступ по горизонталі
+            borderRadius="md"
+            role="group"
+            transition=".15s ease"
+            {...rest}
+        >
+            {icon && (
+                <Icon
+                    mr="3"
+                    boxSize="5"
+                    as={icon}
+                />
+            )}
+            {children}
+        </ChakraLink>
+    );
 };
 
+function Sidebar({ isOpen, onClose, display, isDrawer = false, ...rest }) {
+    const bgColor = useColorModeValue('white', 'gray.800');
+    const borderColor = useColorModeValue('gray.200', 'gray.700');
 
-function Sidebar() {
-  // Отримуємо поточний режим та функцію перемикання
-  const { colorMode, toggleColorMode } = useColorMode();
+    // Вміст сайдбару, який буде однаковим для Drawer та звичайного Sidebar
+    const sidebarContent = (
+        <Box
+            bg={bgColor}
+            borderRight={!isDrawer ? '1px' : 'none'} // Тільки для десктопного
+            borderColor={borderColor}
+            w="100%" // Займає всю ширину батька (DrawerContent або Box)
+            h="full" // Займає всю висоту
+            pt={isDrawer ? 0 : 4} // Відступ зверху, якщо не Drawer
+            pb={4}
+        >
+            <VStack spacing={3} align="stretch">
+                <Box px={4} mb={isDrawer ? 0 : 2} display={isDrawer ? 'none' : 'block'}> {/* Лого/Назва, прихована в Drawer, бо там є DrawerHeader */}
+                    <Heading as="h2" size="md" color="red.600" textAlign="center">
+                        EMS Control
+                    </Heading>
+                    <Divider my={3} />
+                </Box>
 
-  return (
-    <Box
-      as="nav"
-      pos="fixed"
-      left={0}
-      top={0}
-      h="100vh"
-      w="250px"
-      // Змінюємо фон залежно від теми
-    //   bg={colorMode === 'light' ? 'gray.50' : 'gray.900'}
-      // Змінюємо колір тексту за замовчуванням
-    //   color={colorMode === 'light' ? 'gray.700' : 'gray.200'}
-      boxShadow="md"
-      zIndex="sticky"
-      // Використовуємо Flex для розташування кнопки внизу
-      display="flex"
-      flexDirection="column"
-      p={5}
-    >
-      {/* Заголовок */}
-      <Heading size="md" mb={10} color={colorMode === 'light' ? 'gray.700' : 'whiteAlpha.900'}>
-        МедСистема
-      </Heading>
+                <NavItem icon={TimeIcon} to="/trauma-journal" onClose={onClose}>
+                    Журнал Карт
+                </NavItem>
+                {/* 
+                Приклад, якщо додати створення картки прямо з сайдбару,
+                хоча зазвичай це робиться з журналу.
+                <NavItem icon={AddIcon} to="/prehospital-care" onClose={onClose}>
+                    Нова Картка
+                </NavItem> 
+                */}
+                <NavItem icon={AttachmentIcon} to="/reports" onClose={onClose}>
+                    Звіти
+                </NavItem>
+                <NavItem icon={SettingsIcon} to="/settings" onClose={onClose}>
+                    Налаштування
+                </NavItem>
+                {/* Додайте інші NavItem тут */}
 
-      {/* Основна навігація */}
-      <VStack align="stretch" spacing={3} flexGrow={1}> {/* flexGrow=1 розтягує цей блок */}
-        <NavItem icon={ViewIcon} to="/">
-          Журнал
-        </NavItem>
-        <NavItem icon={AddIcon} to="/add-casualty">
-          DD 1380
-        </NavItem>
-        <NavItem icon={DownloadIcon} to="/reports">
-          Генерація Звітів
-        </NavItem>
-        {/* Додавайте інші посилання сюди */}
-      </VStack>
+                {/* Приклад секції або просто відступ */}
+                <Box flex="1" /> {/* Займає вільний простір, щоб нижні елементи були знизу */}
+                
+                <Divider my={2} />
+                <Box px={4} textAlign="center">
+                    <Text fontSize="xs" color="gray.500">
+                        Версія 0.1.0
+                    </Text>
+                </Box>
+            </VStack>
+        </Box>
+    );
 
-      {/* Кнопка перемикання теми внизу */}
-      <IconButton
-        aria-label="Змінити тему"
-        // Вибираємо іконку залежно від поточної теми
-        icon={colorMode === 'light' ? <MoonIcon /> : <SunIcon />}
-        onClick={toggleColorMode} // Функція перемикання
-        variant="ghost" // Прозорий фон
-        alignSelf="center" // Центруємо кнопку горизонтально
-        mt={6} // Додаємо відступ зверху
-        color={colorMode === 'light' ? 'gray.600' : 'yellow.300'} // Колір іконки
-        _hover={{ bg: colorMode === 'light' ? 'gray.200' : 'gray.700' }}
-      />
-    </Box>
-  );
+    if (isDrawer) {
+        return (
+            <Drawer isOpen={isOpen} placement="left" onClose={onClose} size="xs">
+                <DrawerOverlay />
+                <DrawerContent bg={bgColor}> {/* Встановлюємо фон для всього DrawerContent */}
+                    <DrawerCloseButton _focus={{ boxShadow: "none" }} />
+                    <DrawerHeader borderBottomWidth="1px" borderColor={borderColor} color="red.600">
+                        Навігація
+                    </DrawerHeader>
+                    <DrawerBody p={0}> {/* Забираємо внутрішні падінги DrawerBody */}
+                        {sidebarContent}
+                    </DrawerBody>
+                </DrawerContent>
+            </Drawer>
+        );
+    }
+
+    // Десктопна версія сайдбару
+    return (
+        <Box
+            as="nav"
+            pos="sticky" // Робить сайдбар "липким" відносно viewport
+            top="0" // Прилипає до верху
+            h="100vh" // Займає всю висоту екрану
+            overflowY="auto" // Додає скрол, якщо вміст не влазить
+            w={{ base: 'full', md: rest.w || '250px' }} // Ширина передається з App.jsx або дефолтна
+            display={display} // Контролюється з App.jsx (none/flex)
+            boxShadow="sm"
+            {...rest} // Передаємо інші пропси, наприклад, ширину з App.jsx
+        >
+            {sidebarContent}
+        </Box>
+    );
 }
 
 export default Sidebar;

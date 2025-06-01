@@ -1,291 +1,564 @@
 // src/theme.js
 import { extendTheme } from '@chakra-ui/react';
-import { mode } from '@chakra-ui/theme-tools'; // Helper for light/dark mode styles
+import { mode } from '@chakra-ui/theme-tools';
 
-// 1. Define Color Palette
+// Helper function to generate alpha colors (якщо потрібно, але Chakra має whiteAlpha/blackAlpha)
+const alpha = (color, opacity) => {
+  if (!color.startsWith('#') || color.length !== 7) return color; // Повертаємо як є, якщо не HEX
+  const r = parseInt(color.slice(1, 3), 16);
+  const g = parseInt(color.slice(3, 5), 16);
+  const b = parseInt(color.slice(5, 7), 16);
+  return `rgba(${r}, ${g}, ${b}, ${opacity})`;
+};
+
 const colors = {
-  // // Brand color (Teal/Green from "Completed" heading)
-  brand: {
-    50: '#E6FFFA', // Lightest
-    100: '#B2F5EA',
-    200: '#81E6D9',
-    300: '#4FD1C5',
-    400: '#38B2AC',
-    500: '#319795', // Main brand color (guess)
-    600: '#2C7A7B', // Darker shade
-    700: '#285E61',
-    800: '#234E52',
-    900: '#1D4044', // Darkest
+  brand: { // Сучасний, насичений, але не кричущий синій
+    50: '#EBF8FF', // blue.50
+    100: '#BEE3F8', // blue.100
+    200: '#90CDF4', // blue.200
+    300: '#63B3ED', // blue.300 (Для акцентів в темній темі)
+    400: '#4299E1', // blue.400
+    500: '#3182CE', // blue.500 (Основний)
+    600: '#2B6CB0', // blue.600 (Для hover, активних станів)
+    700: '#2C5282', // blue.700
+    800: '#2A4365', // blue.800
+    900: '#1A365D', // blue.900
   },
-  // Highlight color (Yellow for selected row and download button)
-  highlight: {
-    50: '#FFFAF0',
-    100: '#FEFCBF',
-    200: '#FEF9C3', // Background for selected row (guess)
-    300: '#FDE68A', // Potential button background (guess)
-    400: '#FCD34D', // Darker button background / hover (guess)
-    // ... add darker shades if needed for text on highlight bg
+  // Функціональні кольори
+  success: { 50: '#F0FFF4', 100: '#C6F6D5', 500: '#38A169', 600: '#2F855A' }, // green
+  warning: { 50: '#FFFFF0', 100: '#FEFCBF', 500: '#D69E2E', 600: '#B7791F' }, // yellow
+  error: { 50: '#FFF5F5', 100: '#FED7D7', 500: '#E53E3E', 600: '#C53030' },   // red
+  info: { 50: '#EBF8FF', 100: '#BEE3F8', 500: '#3182CE', 600: '#2B6CB0' },     // blue (може бути той самий brand)
+
+  // Професійні відтінки сірого
+  gray: {
+    50: '#F9FAFB',    // Дуже світлий, майже білий (фон сторінки)
+    100: '#F3F4F6',   // Світлий фон для секцій, карток
+    200: '#E5E7EB',   // Тонкі рамки, розділювачі
+    300: '#D1D5DB',   // Неактивний текст, плейсхолдери
+    400: '#9CA3AF',   // Вторинний текст
+    500: '#6B7280',   // Текст середньої насиченості, іконки
+    600: '#4B5563',   // Основний текст (темна тема)
+    700: '#374151',   // Основний текст (світла тема), заголовки
+    800: '#1F2937',   // Дуже темний, фон контенту (темна тема)
+    900: '#111827',   // Фон сторінки (темна тема)
   },
 
-  // Background colors
+  // Фони
   bg: {
-    page: { // Base background for the entire page area
-      light: 'gray.50', // Very light grey
-      dark: 'gray.900', // Dark grey for dark mode
-    },
-    content: { // Background for main content cards/areas
-      light: 'white',
-      dark: 'gray.800',
-    },
-    sidebar: { // Background for the sidebar
-      light: 'white',
-      dark: 'gray.800', // Can be same as content or slightly different
-    },
+    page: { light: 'gray.50', dark: 'gray.900' },
+    content: { light: 'white', dark: 'gray.800' }, // Картки, модалки
+    subtle: { light: 'gray.100', dark: 'gray.700' }, // Легкі фони, hover
+    disabled: { light: 'gray.100', dark: 'gray.700' },
+    overlay: { light: 'blackAlpha.600', dark: 'blackAlpha.700' }, // Для модалок
   },
-   // Sidebar Active State Colors
-   sidebarActive: {
-       bg: {
-           light: 'blue.50', // Very light blue
-           dark: 'blue.800', // Darker blue
-       },
-       color: {
-           light: 'blue.700',
-           dark: 'blue.100',
-       }
-   }
+  // Текстові кольори (семантичні)
+  text: {
+    primary: { light: 'gray.700', dark: 'gray.100' },
+    secondary: { light: 'gray.500', dark: 'gray.400' },
+    placeholder: { light: 'gray.400', dark: 'gray.500' },
+    disabled: { light: 'gray.400', dark: 'gray.500' },
+    link: { light: 'brand.500', dark: 'brand.300' },
+    error: { light: 'error.600', dark: 'error.300' },
+  },
+  // Кольори рамок (семантичні)
+  border: {
+    primary: { light: 'gray.200', dark: 'gray.700' }, // Розділювачі
+    input: { light: 'gray.300', dark: 'gray.600' }, // Рамка інпутів
+    focused: { light: 'brand.500', dark: 'brand.300' },
+    error: { light: 'error.500', dark: 'error.300' },
+  }
 };
 
-
-// 2. Define Fonts
 const fonts = {
-  heading: `"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol"`,
-  body: `"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol"`,
+  heading: `"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif`,
+  body: `"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif`,
 };
 
-// 3. Define Global Styles
+// Глобальні стилі
 const styles = {
   global: (props) => ({
     body: {
       bg: mode(colors.bg.page.light, colors.bg.page.dark)(props),
-      color: mode('gray.800', 'whiteAlpha.900')(props),
-      lineHeight: 'base',
+      color: mode(colors.text.primary.light, colors.text.primary.dark)(props),
+      fontSize: { base: '15px', md: '16px' }, // Адаптивний базовий розмір
+      lineHeight: '1.65', // Покращена читабельність
+      WebkitFontSmoothing: 'antialiased',
+      MozOsxFontSmoothing: 'grayscale',
     },
-    // Style links globally if needed
-    // 'a': {
-    //   color: mode('brand.600', 'brand.300')(props),
-    //   _hover: {
-    //     textDecoration: 'underline',
-    //   },
-    // }
+    '*::placeholder': {
+      color: mode(colors.text.placeholder.light, colors.text.placeholder.dark)(props),
+    },
+    '*, *::before, *::after': {
+      borderColor: mode(colors.border.primary.light, colors.border.primary.dark)(props),
+    },
+    // Скролбари
+    '::-webkit-scrollbar': { width: '8px', height: '8px' },
+    '::-webkit-scrollbar-track': { bg: mode('gray.100', 'gray.800')(props) },
+    '::-webkit-scrollbar-thumb': {
+      bg: mode('gray.300', 'gray.600')(props),
+      borderRadius: '8px',
+      '&:hover': { bg: mode('gray.400', 'gray.500')(props) }
+    },
   }),
 };
 
-// 4. Define Component Style Overrides
+// Радіуси заокруглення
+const radii = {
+  none: '0',
+  sm: '0.25rem', // 4px (теги, дрібні елементи)
+  md: '0.5rem',  // 8px (кнопки, інпути, чекбокси)
+  lg: '0.75rem', // 12px (картки, акордеони)
+  xl: '1rem',   // 16px (модальні вікна)
+  full: '9999px',
+};
+
+// Тіні
+const shadows = {
+  xs: '0 1px 2px 0 rgba(0, 0, 0, 0.03)',
+  sm: '0 2px 4px -1px rgba(0,0,0,0.04), 0 1px 2px -1px rgba(0,0,0,0.03)', // Легка тінь для інтерактивних елементів
+  md: '0 4px 8px -2px rgba(0,0,0,0.05), 0 2px 4px -2px rgba(0,0,0,0.04)', // Для карток, акордеонів
+  lg: '0 10px 15px -3px rgba(0,0,0,0.06), 0 4px 6px -4px rgba(0,0,0,0.05)', // Більш виразна
+  xl: '0 20px 25px -5px rgba(0,0,0,0.07), 0 8px 10px -6px rgba(0,0,0,0.05)', // Для модалок, дроверів
+  // Тінь для фокусу
+  outline: (props) => `0 0 0 3px ${mode(alpha(colors.brand[500], 0.3), alpha(colors.brand[300], 0.4))(props)}`,
+  // Тіні для темної теми можуть бути світлішими або менш насиченими
+  'dark-md': '0 4px 8px -2px rgba(0,0,0,0.15), 0 2px 4px -2px rgba(0,0,0,0.1)',
+  'dark-lg': '0 10px 15px -3px rgba(0,0,0,0.2), 0 4px 6px -4px rgba(0,0,0,0.15)',
+};
+
+// Стилі компонентів
 const components = {
-  // --- General Components ---
   Button: {
-    baseStyle: {
-      borderRadius: 'lg', // Rounded corners like in the image
-      fontWeight: 'medium',
+    baseStyle: (props) => ({
+      fontWeight: 'semibold',
+      borderRadius: radii.md,
+      transitionProperty: 'common',
+      transitionDuration: 'fast',
+      _focusVisible: { boxShadow: shadows.outline(props) },
+      _disabled: { opacity: 0.6, cursor: 'not-allowed' }
+    }),
+    sizes: {
+      lg: { h: '3rem', fontSize: 'md', px: '1.5rem' },        // 48px
+      md: { h: '2.75rem', fontSize: 'sm', px: '1.25rem' },    // 44px
+      sm: { h: '2.25rem', fontSize: 'xs', px: '1rem' },      // 36px
     },
     variants: {
-      // Custom variant for the download button
-      download: (props) => ({
-        bg: mode('highlight.300', 'highlight.400')(props), // Using highlight yellow
-        color: 'gray.800', // Text color dark on yellow
+      solid: (props) => ({
+        bg: mode(`${props.colorScheme}.500`, `${props.colorScheme}.300`)(props),
+        color: (props.colorScheme === 'gray' || props.colorScheme === 'warning') ?
+               mode('gray.800', 'gray.800')(props) :
+               mode('white', 'gray.900')(props),
         _hover: {
-          bg: mode('highlight.400', 'highlight.500')(props),
+          bg: mode(`${props.colorScheme}.600`, `${props.colorScheme}.400`)(props),
+          _disabled: { bg: mode(`${props.colorScheme}.500`, `${props.colorScheme}.300`)(props) }
+        },
+        _active: { bg: mode(`${props.colorScheme}.700`, `${props.colorScheme}.500`)(props) }
+      }),
+      outline: (props) => ({
+        borderWidth: '1.5px', // Трохи товстіша рамка для чіткості
+        borderColor: mode(
+            props.colorScheme === 'gray' ? colors.border.input.light : `${props.colorScheme}.500`,
+            props.colorScheme === 'gray' ? colors.border.input.dark : `${props.colorScheme}.300`
+        )(props),
+        color: mode(
+            props.colorScheme === 'gray' ? colors.text.primary.light : `${props.colorScheme}.600`,
+            props.colorScheme === 'gray' ? colors.text.primary.dark : `${props.colorScheme}.200`
+        )(props),
+        _hover: {
+          bg: mode(alpha(colors[props.colorScheme]?.[50] || colors.gray[50], 0.6), alpha(colors[props.colorScheme]?.[900] || colors.gray[900], 0.15))(props),
+        }
+      }),
+      ghost: (props) => ({
+        color: mode(
+            props.colorScheme === 'gray' ? colors.text.secondary.light : `${props.colorScheme}.600`,
+            props.colorScheme === 'gray' ? colors.text.secondary.dark : `${props.colorScheme}.200`
+        )(props),
+        _hover: {
+          bg: mode(alpha(colors[props.colorScheme]?.[50] || colors.gray[50], 0.7), alpha(colors[props.colorScheme]?.[800] || colors.gray[800], 0.15))(props),
+        }
+      }),
+    },
+    defaultProps: { colorScheme: 'brand', size: 'md' }
+  },
+
+  Input: { // Також для NumberInput, PasswordInput
+    baseStyle: (props) => ({
+      field: {
+        width: '100%',
+        minWidth: 0,
+        outline: 0,
+        position: 'relative',
+        appearance: 'none',
+        transitionProperty: 'common',
+        transitionDuration: 'fast',
+        borderRadius: radii.md,
+        bg: mode(colors.bg.content.light, colors.bg.content.dark)(props),
+        color: mode(colors.text.primary.light, colors.text.primary.dark)(props),
+        _autofill: {
+           boxShadow: `0 0 0px 1000px ${mode(colors.brand[50], colors.gray[700])(props)} inset !important`,
+           WebkitTextFillColor: `${mode(colors.gray[800], 'white')(props)} !important`,
+        }
+      },
+    }),
+    sizes: {
+      lg: { field: { h: '3rem', fontSize: 'md', px: 4 } },
+      md: { field: { h: '2.75rem', fontSize: 'sm', px: 3 } }, // 44px
+      sm: { field: { h: '2.25rem', fontSize: 'xs', px: 3 } },
+    },
+    variants: {
+      outline: (props) => ({
+        field: {
+          borderWidth: '1px',
+          borderColor: mode(colors.border.input.light, colors.border.input.dark)(props),
+          _hover: { borderColor: mode('gray.400', 'gray.500')(props) },
+          _focusVisible: {
+            zIndex: 1, // Щоб тінь була поверх інших елементів
+            borderColor: mode(colors.border.focused.light, colors.border.focused.dark)(props),
+            boxShadow: shadows.outline(props)
+          },
+          _invalid: {
+            borderColor: mode(colors.border.error.light, colors.border.error.dark)(props),
+            boxShadow: `0 0 0 1px ${mode(colors.border.error.light, colors.border.error.dark)(props)}`
+          },
+          _disabled: {
+            opacity: 0.5,
+            bg: mode(colors.bg.disabled.light, colors.bg.disabled.dark)(props),
+            borderColor: mode(colors.border.input.light, colors.border.input.dark)(props),
+          }
+        }
+      }),
+      filled: (props) => ({ // Без видимої рамки, з фоном
+        field: {
+          borderWidth: '1px',
+          borderColor: 'transparent',
+          bg: mode(colors.bg.subtle.light, colors.bg.subtle.dark)(props),
+          _hover: { bg: mode('gray.200', 'gray.600')(props) },
+          _focusVisible: {
+            zIndex: 1,
+            bg: mode(colors.bg.content.light, colors.bg.content.dark)(props),
+            borderColor: mode(colors.border.focused.light, colors.border.focused.dark)(props),
+            boxShadow: shadows.outline(props)
+          },
+          _invalid: {
+            borderColor: mode(colors.border.error.light, colors.border.error.dark)(props),
+            bg: mode(alpha(colors.error[50], 0.7), alpha(colors.error[900] || '#1A202C', 0.2))(props),
+          },
+        }
+      }),
+    },
+    defaultProps: { variant: 'outline', size: 'md' }
+  },
+
+  Textarea: { // Успадковує багато від Input
+    baseStyle: (props) => ({
+        paddingY: '0.5rem', // Трохи більше вертикального падінгу
+        minHeight: '5rem',  // Мінімальна висота
+        lineHeight: 'short',
+        borderRadius: radii.md,
+        bg: mode(colors.bg.content.light, colors.bg.content.dark)(props),
+        color: mode(colors.text.primary.light, colors.text.primary.dark)(props),
+        transitionProperty: 'common',
+        transitionDuration: 'fast',
+    }),
+    variants: { // Можна скопіювати з Input
+      outline: (props) => ({
+        borderWidth: '1px',
+        borderColor: mode(colors.border.input.light, colors.border.input.dark)(props),
+        _hover: { borderColor: mode('gray.400', 'gray.500')(props) },
+        _focusVisible: {
+          zIndex: 1,
+          borderColor: mode(colors.border.focused.light, colors.border.focused.dark)(props),
+          boxShadow: shadows.outline(props)
         },
       }),
-      // Adjust solid variant if needed
-      solid: (props) => ({
-         bg: mode(`${props.colorScheme}.500`, `${props.colorScheme}.300`)(props),
-         // Add other solid styles if needed
-      }),
-      // Adjust ghost variant for action icons
-      ghost: (props) => ({
-          color: mode('gray.600', 'gray.400')(props),
-          _hover: {
-              bg: mode('gray.100', 'whiteAlpha.200')(props)
-          }
-      })
     },
-     defaultProps: {
-        // colorScheme: 'brand', // Set default color scheme if desired
-     }
+    defaultProps: { variant: 'outline', size: 'md' }
   },
-  Input: { // Applies to Input, Textarea, Select placeholders potentially
-    baseStyle: {
-        field: { // Target the actual input field
-             borderRadius: 'lg',
+
+  Select: { // Схоже на Input
+     baseStyle: (props) => ({
+        field: { // Стилі з Input.baseStyle.field
+            width: '100%', minWidth: 0, outline: 0, position: 'relative', appearance: 'none',
+            transitionProperty: 'common', transitionDuration: 'fast',
+            borderRadius: radii.md,
+            bg: mode(colors.bg.content.light, colors.bg.content.dark)(props),
+            color: mode(colors.text.primary.light, colors.text.primary.dark)(props),
+        },
+        icon: { // Стрілка
+            color: mode(colors.text.secondary.light, colors.text.secondary.dark)(props),
+            fontSize: '1.25rem', // Трохи більша стрілка
+            insetEnd: '0.75rem', // Відступ стрілки
         }
+    }),
+    sizes: { // З Input.sizes, але з урахуванням padding для іконки
+      lg: { field: { h: '3rem', fontSize: 'md', paddingInlineEnd: '2.5rem', paddingInlineStart: '1rem'} },
+      md: { field: { h: '2.75rem', fontSize: 'sm', paddingInlineEnd: '2.5rem', paddingInlineStart: '0.75rem'} },
     },
-    variants: {
+    variants: { // З Input.variants.outline
         outline: (props) => ({
             field: {
-                bg: mode('white', 'gray.700')(props), // Background for input
-                borderColor: mode('gray.300', 'gray.600')(props), // Border color
-                 borderRadius: 'lg',
-                _hover: {
-                    borderColor: mode('gray.400', 'gray.500')(props),
-                },
-                _focusVisible: { // Style for focus
-                     borderColor: mode('brand.500', 'brand.300')(props),
-                     boxShadow: `0 0 0 1px ${mode(colors.brand[500], colors.brand[300])(props)}`,
-                 }
-            }
-        })
-    },
-    defaultProps: {
-        variant: 'outline', // Make outline the default
-    }
-  },
-  Select: { // Similar styling for Select dropdown
-     baseStyle: {
-        field: {
-             borderRadius: 'lg',
-        }
-    },
-    variants: {
-        outline: (props) => ({
-            field: {
-                bg: mode('white', 'gray.700')(props),
-                borderColor: mode('gray.300', 'gray.600')(props),
-                 borderRadius: 'lg',
-                _hover: {
-                    borderColor: mode('gray.400', 'gray.500')(props),
+                borderWidth: '1px',
+                borderColor: mode(colors.border.input.light, colors.border.input.dark)(props),
+                _hover: { borderColor: mode('gray.400', 'gray.500')(props) },
+                _focusVisible: {
+                    zIndex: 1,
+                    borderColor: mode(colors.border.focused.light, colors.border.focused.dark)(props),
+                    boxShadow: shadows.outline(props)
                 },
             }
         })
     },
-     defaultProps: {
-        variant: 'outline',
-    }
+     defaultProps: { variant: 'outline', size: 'md' }
   },
+
   Checkbox: {
-      baseStyle: {
+      baseStyle: (props) => ({
           control: {
-              borderRadius: 'md', // Slightly rounded checkbox square
-              _checked: { // Style when checked
-                  bg: 'brand.500',
-                  borderColor: 'brand.500',
+              borderRadius: radii.sm, // 4px
+              borderWidth: '1.5px',
+              borderColor: mode(colors.border.input.light, colors.border.input.dark)(props),
+              transitionProperty: 'common', transitionDuration: 'fast',
+              _checked: {
+                  bg: mode('brand.500', 'brand.300')(props),
+                  borderColor: mode('brand.500', 'brand.300')(props),
+                  color: mode('white', 'gray.900')(props),
                   _hover: {
-                     bg: 'brand.1000',
-                     borderColor: 'brand.600',
+                     bg: mode('brand.600', 'brand.400')(props),
+                     borderColor: mode('brand.600', 'brand.400')(props),
                   }
+              },
+              _focusVisible: { boxShadow: shadows.outline(props) },
+              _disabled: {
+                bg: mode(colors.bg.disabled.light, colors.bg.disabled.dark)(props),
+                borderColor: mode(colors.border.input.light, colors.border.input.dark)(props),
               }
-          }
-      }
-  },
-  Table: {
-    // Apply styles to the striped variant used in CasualtyListPage
-    variants: {
-      striped: (props) => ({
-        thead: {
-          th: {
-            color: mode('gray.600', 'gray.400')(props),
-            fontWeight: 'medium', // Header font weight
-            textTransform: 'none', // Prevent uppercase default
-            letterSpacing: 'normal',
-            borderBottom: '1px',
-            borderColor: mode('gray.100', 'gray.700')(props),
-            fontSize: 'sm', // Match image font size
-             // Add padding if needed
-            // px: 4,
-            // py: 3,
           },
+          label: {
+              fontWeight: 'medium', marginLeft: 2,
+              color: mode(colors.text.primary.light, colors.text.primary.dark)(props),
+          }
+      }),
+      defaultProps: { colorScheme: 'brand', size: 'md' }
+  },
+
+  Accordion: {
+    baseStyle: (props) => ({
+        container: { // AccordionItem
+             border: 'none',
+             bg: mode(colors.bg.content.light, colors.bg.content.dark)(props),
+             borderRadius: radii.lg, // 12px
+             boxShadow: mode(shadows.md, shadows['dark-md'])(props),
+             overflow: 'hidden',
+             '&:not(:last-of-type)': { // Відступ між айтемами акордеону
+                 marginBottom: 4, // Або 6
+             }
+        },
+        button: {
+            fontWeight: 'semibold', fontSize: 'md',
+            py: 4, px: 5, // 16px, 20px
+            color: mode(colors.text.primary.light, colors.text.primary.dark)(props),
+            textAlign: 'left',
+            borderBottomWidth: '1px',
+            borderColor: 'transparent', // Початково прозора
+             _hover: { bg: mode(colors.bg.subtle.light, colors.bg.subtle.dark)(props) },
+            _expanded: {
+                bg: mode(alpha(colors.brand[50], 0.7), alpha(colors.brand[800], 0.25))(props),
+                color: mode(colors.brand[600], colors.brand[200])(props),
+                borderColor: mode(colors.border.primary.light, colors.border.primary.dark)(props), // Показуємо рамку при розгортанні
+            },
+            // Якщо кнопка не розгорнута і це НЕ останній елемент перед розгорнутою панеллю, додати рамку
+            // Це складніше зробити тут, легше керувати `borderBottomColor` в AccordionItem
+        },
+        panel: {
+            pt: 2, pb: 5, px: 5,
+            // Фон панелі може бути ледь помітно іншим для глибини
+            bg: mode(colors.bg.content.light, colors.bg.content.dark)(props),
+        },
+        icon: {
+            fontSize: '1.25em',
+            color: mode(colors.text.secondary.light, colors.text.secondary.dark)(props),
+        }
+    })
+  },
+
+  Table: { // Більш сучасний вигляд таблиць
+    baseStyle: { table: { borderCollapse: 'separate', borderSpacing: 0, width: '100%' } },
+    variants: {
+      simple: (props) => ({
+        th: {
+          color: mode(colors.text.secondary.light, colors.text.secondary.dark)(props),
+          fontWeight: 'semibold', textTransform: 'none', letterSpacing: 'normal',
+          borderBottomWidth: '1.5px', // Чіткіша лінія
+          borderColor: mode(colors.border.primary.light, colors.border.primary.dark)(props),
+          fontSize: 'sm', py: 3, px: 4, textAlign: 'left',
+        },
+        td: {
+          borderBottomWidth: '1px',
+          borderColor: mode(colors.border.primary.light, colors.border.primary.dark)(props),
+          py: 3, px: 4, fontSize: 'sm',
+        },
+      }),
+      striped: (props) => ({
+        th: { /* як в simple */
+            color: mode(colors.text.secondary.light, colors.text.secondary.dark)(props),
+            fontWeight: 'semibold', textTransform: 'none', letterSpacing: 'normal',
+            borderBottomWidth: '1.5px', borderColor: mode(colors.border.primary.light, colors.border.primary.dark)(props),
+            fontSize: 'sm', py: 3, px: 4, textAlign: 'left',
         },
         tbody: {
           tr: {
-            // Styling for selected row needs to be applied conditionally in the component
-            // using state, but we can define the background color here
-            // e.g., in component: <Tr bg={isSelected ? 'highlight.200' : undefined}>...</Tr>
-
-            // Default row styles
-             '&:nth-of-type(odd)': { // Striping
-               'th, td': {
-                 borderBottomWidth: '1px',
-                 borderColor: mode('gray.100', 'gray.700')(props),
-               },
-               td: {
-                 background: mode('gray.50', 'whiteAlpha.50')(props), // Very subtle striping
-               },
-             },
-             '&:nth-of-type(even)': {
-                 'th, td': {
-                   borderBottomWidth: '1px',
-                   borderColor: mode('gray.100', 'gray.700')(props),
-                 },
-             },
-              td: {
-                 fontSize: 'sm', // Match image font size
-                 color: mode('gray.700', 'gray.200')(props),
-                  // Add padding if needed
-                 // px: 4,
-                 // py: 3,
-             }
+            '&:nth-of-type(odd) td': {
+              bg: mode(colors.bg.subtle.light, alpha(colors.gray[700], 0.4))(props),
+            },
+            td: {
+                borderBottomWidth: '1px',
+                borderColor: mode(colors.border.primary.light, colors.border.primary.dark)(props),
+                py: 3, px: 4, fontSize: 'sm',
+            }
           },
         },
       }),
     },
-    defaultProps: {
-      variant: 'striped', // Make striped the default for <Table>
-      size: 'sm',         // Default size
-      colorScheme: 'gray', // Base color scheme
-    },
+    defaultProps: { variant: 'simple', size: 'md' },
   },
+
   Heading: {
       baseStyle: (props) => ({
           fontFamily: 'heading',
-          color: mode('gray.700', 'whiteAlpha.900')(props),
+          fontWeight: 'semibold',
+          color: mode(colors.text.primary.light, colors.text.primary.dark)(props),
+          lineHeight: '1.35',
       }),
-       // Example specific style for the "Completed" heading if needed
-      // variants: {
-      //     pageTitle: (props) => ({
-      //         color: mode('brand.600', 'brand.300')(props),
-      //         // add other styles
-      //     })
-      // }
+      sizes: { // DeHealth-like sizes
+          '2xl': { fontSize: { base: '1.875rem', md: '2.25rem'} }, // ~30px -> 36px
+          'xl': { fontSize: { base: '1.5rem', md: '1.875rem'} },    // ~24px -> 30px
+          'lg': { fontSize: { base: '1.25rem', md: '1.5rem'} },     // ~20px -> 24px
+          'md': { fontSize: '1.125rem' },                             // ~18px
+          'sm': { fontSize: '1rem' },                                 // ~16px
+          'xs': { fontSize: '0.875rem' },                             // ~14px
+      }
   },
+
   Text: {
       baseStyle: (props) => ({
            fontFamily: 'body',
-           color: mode('gray.700', 'gray.300')(props), // Default text color
+           color: mode(colors.text.primary.light, colors.text.primary.dark)(props),
+           lineHeight: '1.7',
       }),
        variants: {
-           secondary: (props) => ({ // For lighter text like "256 items"
-                color: mode('gray.500', 'gray.400')(props),
-           })
+           secondary: (props) => ({ color: mode(colors.text.secondary.light, colors.text.secondary.dark)(props) }),
+           subtle: (props) => ({ color: mode('gray.400', 'gray.500')(props) }), // Ще світліший
+           caption: (props) => ({ fontSize: 'xs', color: mode(colors.text.secondary.light, colors.text.secondary.dark)(props) })
        }
   },
-  // Add other component overrides if necessary (e.g., Link, Tag)
-  Tag: { // For Triage tags and notification badges
-      baseStyle: {
-           borderRadius: 'full', // Make notification badges circular
+
+  Tag: {
+      baseStyle: (props) => ({
+           borderRadius: radii.sm, // 4px, більш прямокутні
+           fontWeight: 'medium',
+           lineHeight: 1.2,
+           px: 2.5, py: 0.5, // Компактніші
+      }),
+      variants: {
+        subtle: (props) => ({ // Основний варіант
+            bg: mode(`${props.colorScheme}.50`, alpha(colors[props.colorScheme]?.[700] || colors.gray[700], 0.15))(props),
+            color: mode(`${props.colorScheme}.600`, `${props.colorScheme}.200`)(props),
+        }),
+        solid: (props) => ({
+            bg: mode(`${props.colorScheme}.500`, `${props.colorScheme}.300`)(props),
+            color: (props.colorScheme === 'gray' || props.colorScheme === 'warning') ?
+                   mode('gray.800', 'gray.800')(props) :
+                   mode('white', 'gray.900')(props),
+        }),
       },
-       variants: {
-           // Could define specific variants for triage colors if needed,
-           // but using colorScheme prop might be sufficient
-       },
-       defaultProps: {
-           // size: 'sm',
-       }
-  }
+      defaultProps: { variant: 'subtle', colorScheme: 'gray', size: 'md' }
+  },
+
+  Card: { // Chakra UI Card component
+    baseStyle: (props) => ({
+        container: {
+            bg: mode(colors.bg.content.light, colors.bg.content.dark)(props),
+            borderRadius: radii.lg, // 12px
+            boxShadow: mode(shadows.md, shadows['dark-md'])(props),
+            overflow: 'hidden', // Для заокруглення
+        },
+        header: { p: { base: 4, md: 5 }, borderBottomWidth: '1px' },
+        body: { p: { base: 4, md: 5 } },
+        footer: { p: { base: 4, md: 5 }, borderTopWidth: '1px' },
+    }),
+    defaultProps: { variant: 'outline' } // outline додає тонку рамку
+  },
+
+  Modal: {
+    baseStyle: (props) => ({
+        overlay: {
+            bg: mode(colors.bg.overlay.light, colors.bg.overlay.dark)(props),
+            backdropFilter: 'blur(3px)', // Ефект "матового скла"
+        },
+        dialog: {
+            bg: mode(colors.bg.content.light, colors.bg.content.dark)(props),
+            borderRadius: radii.xl, // 16px
+            boxShadow: mode(shadows.xl, shadows['dark-lg'])(props),
+            my: { base: 8, md: 16 }, // Відступи зверху/знизу
+            maxH: "calc(100vh - 4rem)", // Обмеження висоти
+            display: "flex",
+            flexDirection: "column",
+        },
+        header: {
+            fontWeight: 'semibold', fontSize: 'lg',
+            py: 4, px: 6, flexShrink: 0,
+            borderBottomWidth: '1px',
+        },
+        body: {
+            py: 5, px: 6,
+            flexGrow: 1,
+            overflowY: 'auto', // Скрол для тіла, якщо контент великий
+        },
+        footer: {
+            py: 4, px: 6, flexShrink: 0,
+            borderTopWidth: '1px',
+            justifyContent: 'flex-end',
+            '> button:not(:last-of-type)': { marginEnd: 3 }
+        },
+        closeButton: {
+            top: 4, right: 4, borderRadius: radii.md,
+            _hover: { bg: mode('gray.100', 'gray.700')(props) },
+            _focusVisible: { boxShadow: shadows.outline(props) }
+        }
+    })
+  },
+
+  Alert: { // Для тостів та повідомлень
+    baseStyle: (props) => ({
+        container: {
+            borderRadius: radii.md, // 8px
+            px: 4, py: 3,
+            boxShadow: mode(shadows.lg, shadows['dark-lg'])(props), // Тінь для "плаваючих" алертов
+        },
+        icon: { marginEnd: 3, w: 5, h: 5, flexShrink: 0 },
+        title: { fontWeight: 'semibold', mb: 1, lineHeight: 1.3 },
+        description: { lineHeight: 1.5 },
+    }),
+    defaultProps: { variant: 'subtle' } // subtle є хорошим варіантом
+  },
 };
 
-// 5. Define Theme Configuration
 const config = {
-  initialColorMode: 'light', // Start with light mode ('dark', 'system')
-  useSystemColorMode: false, // Don't automatically use system preference for now
+  initialColorMode: 'light',
+  useSystemColorMode: false,
 };
 
-// 6. Extend the theme
 const theme = extendTheme({
   config,
   colors,
   fonts,
   styles,
   components,
+  radii,
+  shadows,
+  // Семантичні токени - це хороший підхід, але для початку можна обійтися без них,
+  // якщо тема добре налаштована через mode()
 });
 
 export default theme;
