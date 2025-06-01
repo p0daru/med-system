@@ -131,43 +131,58 @@ const PORT = process.env.PORT || 5001; // Використовуємо порт 
 
 // URL фронтенду для розробки
 const FRONTEND_DEV_URL = process.env.FRONTEND_DEV_URL || 'http://localhost:5173';
-// URL фронтенду для продакшену БУДЕ БРАТИСЯ ЗІ ЗМІННИХ СЕРЕДОВИЩА НА RENDER.COM
 const FRONTEND_PROD_URL_FROM_ENV = process.env.FRONTEND_PROD_URL;
 
 // Middleware (Проміжне ПЗ)
 
-// Налаштовуємо CORS
 app.use(cors({
     origin: (origin, callback) => {
-        // Логуємо вхідний origin для діагностики
         console.log(`CORS Check - Incoming Origin: ${origin}`);
 
-        const allowedOrigins = [FRONTEND_DEV_URL];
+        const allowedOriginsConfig = [];
+        if (FRONTEND_DEV_URL) {
+            allowedOriginsConfig.push({ url: FRONTEND_DEV_URL, exactMatch: false }); // Для dev можна startsWith
+        }
         if (FRONTEND_PROD_URL_FROM_ENV) {
-            allowedOrigins.push(FRONTEND_PROD_URL_FROM_ENV);
+            allowedOriginsConfig.push({ url: FRONTEND_PROD_URL_FROM_ENV, exactMatch: true }); // Для prod потрібне точне співпадіння
         }
         
-        console.log(`CORS Check - Allowed Origins: ${allowedOrigins.join(', ')}`);
+        const allowedUrlsForLogging = allowedOriginsConfig.map(c => c.url);
+        console.log(`CORS Check - Configured Allowed Origins: ${allowedUrlsForLogging.join(', ')}`);
 
-        // Дозволяємо запити без origin (наприклад, Postman) у розробці (якщо NODE_ENV не 'production')
         if (!origin && process.env.NODE_ENV !== 'production') {
             console.log("CORS Check: Allowed (no origin, development mode)");
             return callback(null, true);
         }
 
-        // Перевіряємо, чи вхідний origin є в списку дозволених
-        // Використовуємо startsWith для гнучкості з кінцевим слешем
-        if (origin && allowedOrigins.some(allowedUrl => origin.startsWith(allowedUrl))) {
+        let isAllowed = false;
+        if (origin) {
+            for (const config of allowedOriginsConfig) {
+                if (config.exactMatch) {
+                    if (origin === config.url) {
+                        isAllowed = true;
+                        break;
+                    }
+                } else { // startsWith для dev
+                    if (origin.startsWith(config.url)) {
+                        isAllowed = true;
+                        break;
+                    }
+                }
+            }
+        }
+        
+        if (isAllowed) {
             console.log(`CORS Check: Allowed for origin: ${origin}`);
             callback(null, true);
         } else {
-            console.log(`CORS Check: NOT Allowed for origin: ${origin}`);
+            console.log(`CORS Check: NOT Allowed for origin: ${origin}. Review exact string matching for production URLs.`);
             callback(new Error('Not allowed by CORS'));
         }
     },
-    methods: 'GET,POST,PUT,DELETE,OPTIONS', // Додайте OPTIONS для preflight запитів
+    methods: 'GET,POST,PUT,DELETE,OPTIONS',
     allowedHeaders: 'Content-Type,Authorization',
-    credentials: true // Якщо ви плануєте використовувати кукі або сесії через домени
+    credentials: true
 }));
 
 app.use(express.json()); // Дозволяємо серверу розуміти JSON
