@@ -1,78 +1,217 @@
-// frontend/src/components/PatientCard/testData.js
-import constants from './patientCardConstants'; // Нам потрібні константи для деяких значень
+// frontend/src/utils/testData.js
+import { 
+    INITIAL_PRE_HOSPITAL_FORM_DATA,
+    SCENE_TYPE_OPTIONS, GENDER_OPTIONS, CONSCIOUSNESS_LEVELS_AVPU, AIRWAY_STATUS_OPTIONS,
+    BREATHING_RATE_OPTIONS, OXYGEN_SATURATION_OPTIONS, BREATHING_QUALITY_OPTIONS,
+    CHEST_EXCURSION_OPTIONS, AUSCULTATION_LUNGS_OPTIONS, PULSE_RATE_OPTIONS,
+    PULSE_QUALITY_OPTIONS, PULSE_LOCATION_OPTIONS, CAPILLARY_REFILL_TIME_OPTIONS,
+    SKIN_STATUS_OPTIONS, EXTERNAL_BLEEDING_OPTIONS, GCS_EYE_OPTIONS, GCS_VERBAL_OPTIONS,
+    GCS_MOTOR_OPTIONS, PUPIL_REACTION_OPTIONS, MOTOR_SENSORY_STATUS_OPTIONS,
+    BODY_TEMPERATURE_OPTIONS, TRANSPORTATION_METHOD_OPTIONS, TRIAGE_CATEGORIES_OPTIONS,
+    EFFECTIVENESS_OPTIONS, MEDICATION_ROUTE_OPTIONS, COMMON_PREHOSPITAL_MEDICATIONS,
+    COMMON_PREHOSPITAL_PROCEDURES
+} from './patientCardConstants'; // Переконайтеся, що шлях правильний
 
-// Допоміжні функції для генерації часу/дати (якщо вони не експортуються з PreHospitalCareSection)
-const getCurrentTime = () => new Date().toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit' });
-const getCurrentDateTimeLocal = () => {
-    const now = new Date();
-    now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-    return now.toISOString().slice(0, 16);
+const generateShortId = (prefix = 'TRM-') => {
+  let result = prefix;
+  const alphanumeric = 'ABCDEFGHJKLMNPQRSTUVWXYZ123456789';
+  for (let i = 0; i < 6; i++) {
+    result += alphanumeric.charAt(Math.floor(Math.random() * alphanumeric.length));
+  }
+  return result;
 };
 
+const getRandomElement = (arr) => arr[Math.floor(Math.random() * arr.length)];
+const getRandomNumber = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
+const getRandomDateWithinPastHours = (hours) => {
+    const now = new Date();
+    const randomMillis = Math.random() * hours * 60 * 60 * 1000;
+    return new Date(now.getTime() - randomMillis);
+};
+const formatDateTimeLocal = (date) => {
+    // Helper to format date for <input type="datetime-local">
+    const year = date.getFullYear();
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const day = date.getDate().toString().padStart(2, '0');
+    const hours = date.getHours().toString().padStart(2, '0');
+    const minutes = date.getMinutes().toString().padStart(2, '0');
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
+};
+const formatDateLocal = (date) => {
+    const year = date.getFullYear();
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const day = date.getDate().toString().padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+const formatTimeLocal = (date) => {
+    const hours = date.getHours().toString().padStart(2, '0');
+    const minutes = date.getMinutes().toString().padStart(2, '0');
+    return `${hours}:${minutes}`;
+}
 
-export const getPreHospitalTestData = (existingInternalCardId = null, existingTempPatientId = null) => {
-    const isEditMode = !!existingInternalCardId; // Якщо передано ID, припускаємо режим редагування для ID
-    const internalCardId = existingInternalCardId || `TEST-CARD-${Date.now().toString(36).toUpperCase()}`;
-    const tempPatientId = existingTempPatientId || `TEST-PAT-${Date.now().toString(36).toUpperCase()}`;
 
-    return {
-        // Беремо за основу структуру з констант, щоб не пропустити поля
-        ...JSON.parse(JSON.stringify(constants.initialPreHospitalFormData)), 
-        internalCardId: internalCardId,
-        incidentDateTime: getCurrentDateTimeLocal(),
-        reasonForCall: "ДТП, лобове зіткнення, затиснутий водій",
-        patientInfo: {
-            isUnknown: false,
-            tempPatientId: tempPatientId,
-            lastName: "Шевченко",
-            firstName: "Тарас",
-            middleName: "Григорович",
-            dateOfBirth: "1990-03-09",
-            ageYears: "", // Розрахується або залишиться порожнім, якщо є ДН
-            gender: constants.genders[0], // Чоловіча
-            contactPhone: "0509876543",
-            addressRough: "м. Київ, просп. Перемоги, 15, кв. 3",
-            allergiesShort: "Аспірин - кропив'янка",
-            medicationsShort: "Лізиноприл 10 мг щоденно (гіпертонія)",
-            medicalHistoryShort: "Гіпертонічна хвороба II ст. Виразкова хвороба 12-палої кишки в анамнезі.",
-        },
-        teamArrivalTimeScene: getCurrentDateTimeLocal(),
-        patientContactTime: getCurrentDateTimeLocal(),
-        complaints: "Сильний біль у грудній клітці зліва, задишка, біль у лівому стегні. Запаморочення.",
-        triageCategory: constants.triageCategories[0], // Червоний
-        triageTimestamp: getCurrentTime(),
-        marchSurvey: {
-            massiveHemorrhageControl: "Видимих зовнішніх масивних кровотеч немає. Підозра на внутрішню кровотечу.",
-            airwayManagement: constants.airwayManagementOptions[0], // "Дихальні шляхи вільні, прохідні"
-            breathingAssessment: "ЧД 30/хв, поверхневе. SpO2 88% на повітрі. Аускультативно - ослаблене дихання зліва. Крепітація 5-7 ребер зліва. Напружені шийні вени.",
-            circulationAssessment: "Пульс 130 уд/хв, ниткоподібний. АТ 80/50 мм рт.ст. Шкіра бліда, волога, холодна на дотик. Капілярне наповнення >3 сек.",
-            hypothermiaPreventionHeadInjury: "ШКГ E2V3M4=9. Зіниці D=S, фотореакція в'яла. Накладено термоковдру. Шийний комірець.",
-        },
-        vitalSignsLog: [
-            { ...constants.vitalSignTemplate, timestamp: getCurrentTime(), sbp: '80', dbp: '50', hr: '130', rr: '30', spo2: '88', gcsE: '2', gcsV: '3', gcsM: '4', gcsTotal: '9', painScore: '9' },
-            { ...constants.vitalSignTemplate, timestamp: (() => {const d=new Date(); d.setMinutes(d.getMinutes()+5); return d.toLocaleTimeString('uk-UA', {hour:'2-digit', minute:'2-digit'})})(), sbp: '85', dbp: '55', hr: '125', rr: '28', spo2: '90', gcsE: '2', gcsV: '3', gcsM: '4', gcsTotal: '9', painScore: '8' }, // Через 5 хв
-        ],
-        suspectedInjuries: [
-            { ...constants.injuryTemplate, bodyPart: constants.bodyParts[4], typeOfInjury: constants.injuryTypes[4], description: "Закритий перелом 5,6,7 ребер зліва. Напружений пневмоторакс зліва (підозра)." },
-            { ...constants.injuryTemplate, bodyPart: constants.bodyParts[20], typeOfInjury: constants.injuryTypes[3], description: "Закритий перелом лівої стегнової кістки в середній третині, деформація, патологічна рухливість." },
-            { ...constants.injuryTemplate, bodyPart: constants.bodyParts[0], typeOfInjury: "ЧМТ (струс/забій?)", description: "Втрата свідомості на місці події на кілька хвилин (зі слів свідків)." },
-        ],
-        interventionsPerformed: [
-            { ...constants.interventionTemplate, type: "Голкова декомпресія плевральної порожнини", timestamp: getCurrentTime(), details: "Торакоцентез зліва у II міжребер'ї по середньоключичній лінії. Отримано повітря під тиском. Покращення SpO2 до 92%." },
-            { ...constants.interventionTemplate, type: "Внутрішньовенний доступ (периферичний)", timestamp: (() => {const d=new Date(); d.setMinutes(d.getMinutes()+2); return d.toLocaleTimeString('uk-UA', {hour:'2-digit', minute:'2-digit'})})(), details: "Катетер G18 в праву ліктьову вену. Почато інфузію." },
-            { ...constants.interventionTemplate, type: "Іммобілізація (шини/комір/дошка)", timestamp: (() => {const d=new Date(); d.setMinutes(d.getMinutes()+3); return d.toLocaleTimeString('uk-UA', {hour:'2-digit', minute:'2-digit'})})(), details: "Шийний комірець. Шина Дітеріхса на ліве стегно." },
-        ],
-        medicationsAdministered: [
-            { ...constants.medicationTemplate, name: "Розчин Рінгера лактат", dose: "500", unit: "мл", route: "в/в", timestamp: (() => {const d=new Date(); d.setMinutes(d.getMinutes()+2); return d.toLocaleTimeString('uk-UA', {hour:'2-digit', minute:'2-digit'})})() },
-            { ...constants.medicationTemplate, name: "Морфін", dose: "5", unit: "мг", route: "в/в", timestamp: (() => {const d=new Date(); d.setMinutes(d.getMinutes()+7); return d.toLocaleTimeString('uk-UA', {hour:'2-digit', minute:'2-digit'})})() },
-        ],
-        transportation: {
-            destinationFacilityName: "Обласна клінічна лікарня, Травматологічний центр",
-            transportMode: constants.transportModes[0], // ЕМД (Автомобіль)
-            departureTimeFromScene: getCurrentDateTimeLocal(), // Припустимо, виїзд через 20 хв після прибуття
-            patientConditionDuringTransport: "Стан важкий, стабільний. АТ 90/60, ЧСС 120, SpO2 94% на кисні 5л/хв. Свідомість ШКГ 10 (E3V3M4).",
-        },
-        outcomePreHospital: constants.patientOutcomePreHospital[0], // Госпіталізовано
-        notes: "Пацієнт був затиснутий в авто, деблокований рятувальниками ДСНС. Подушки безпеки спрацювали. Запах алкоголю від пацієнта відсутній.",
-    };
+export const generatePreHospitalTestData = () => {
+  const cardId = generateShortId();
+  const incidentTime = getRandomDateWithinPastHours(3); // Подія за останні 3 години
+  const arrivalTime = new Date(incidentTime.getTime() + getRandomNumber(5, 20) * 60000); // Прибуття через 5-20 хв після події
+
+  const randomMaleName = ["Іван", "Петро", "Олександр", "Сергій", "Андрій", "Микола", "Василь"];
+  const randomFemaleName = ["Марія", "Олена", "Анна", "Тетяна", "Наталія", "Ірина", "Світлана"];
+  const randomLastName = ["Шевченко", "Мельник", "Ковальчук", "Бондаренко", "Ткаченко", "Кравченко", "Олійник"];
+  const randomPatronymicMale = ["Іванович", "Петрович", "Олександрович", "Сергійович", "Андрійович"];
+  const randomPatronymicFemale = ["Іванівна", "Петрівна", "Олександрівна", "Сергіївна", "Андріївна"];
+
+  const gender = getRandomElement(GENDER_OPTIONS.filter(opt => opt.value !== 'unknown' && opt.value !== 'other')).value;
+  let fullName;
+  if (gender === 'male') {
+    fullName = `${getRandomElement(randomLastName)} ${getRandomElement(randomMaleName)} ${getRandomElement(randomPatronymicMale)}`;
+  } else {
+    fullName = `${getRandomElement(randomLastName)} ${getRandomElement(randomFemaleName)} ${getRandomElement(randomPatronymicFemale)}`;
+  }
+  if (Math.random() < 0.1) fullName = "Невідомий Чоловік"; // 10% шанс невідомого
+  if (Math.random() < 0.05 && gender === 'female') fullName = "Невідома Жінка";
+
+
+  const patientApproximateAge = getRandomNumber(18, 80);
+  const patientDateOfBirth = new Date();
+  patientDateOfBirth.setFullYear(patientDateOfBirth.getFullYear() - patientApproximateAge);
+  patientDateOfBirth.setDate(getRandomNumber(1,28));
+  patientDateOfBirth.setMonth(getRandomNumber(0,11));
+
+
+  const hasCatastrophicBleeding = Math.random() < 0.3; // 30% шанс
+
+  // Випадковий вибір кількох опцій для GCS
+  const gcsEye = getRandomElement(GCS_EYE_OPTIONS.filter(o => o.value !== 'NV')).value;
+  const gcsVerbal = getRandomElement(GCS_VERBAL_OPTIONS.filter(o => o.value !== 'NV')).value;
+  const gcsMotor = getRandomElement(GCS_MOTOR_OPTIONS.filter(o => o.value !== 'NV')).value;
+  
+  const numMedications = getRandomNumber(0, 3);
+  const medicationsAdministered = [];
+  const usedMedNames = new Set();
+  for (let i = 0; i < numMedications; i++) {
+      let medName;
+      do {
+          medName = getRandomElement(COMMON_PREHOSPITAL_MEDICATIONS);
+      } while (usedMedNames.has(medName));
+      usedMedNames.add(medName);
+
+      medicationsAdministered.push({
+          name: medName,
+          customName: '',
+          dosage: `${getRandomNumber(1, 10)}${getRandomElement(['мг', 'мл', 'таб.'])}`,
+          route: getRandomElement(MEDICATION_ROUTE_OPTIONS.filter(o => o.value !== 'custom_entry' && o.value !== 'other')).value,
+          customRoute: '',
+          time: formatTimeLocal(new Date(arrivalTime.getTime() + getRandomNumber(1,10) * 60000)),
+          effectiveness: getRandomElement(EFFECTIVENESS_OPTIONS).value
+      });
+  }
+  // Додамо один "інший" медикамент з 20% шансом
+  if (Math.random() < 0.2 && numMedications < 3) {
+      medicationsAdministered.push({
+          name: 'custom_entry',
+          customName: `Тестовий Препарат ${getRandomNumber(100,200)}`,
+          dosage: '100 од.',
+          route: 'custom_entry',
+          customRoute: 'Під язик краплі',
+          time: formatTimeLocal(new Date(arrivalTime.getTime() + getRandomNumber(1,10) * 60000)),
+          effectiveness: 'partially_effective'
+      });
+  }
+  // Якщо масив порожній після генерації, додаємо дефолтний порожній елемент
+  if (medicationsAdministered.length === 0) {
+    medicationsAdministered.push({ name: '', customName: '', dosage: '', route: '', customRoute: '', time: '', effectiveness: '' });
+  }
+
+
+  const numProcedures = getRandomNumber(0, 2);
+  const proceduresPerformed = [];
+  const usedProcNames = new Set();
+  for (let i = 0; i < numProcedures; i++) {
+    let procName;
+    do {
+        procName = getRandomElement(COMMON_PREHOSPITAL_PROCEDURES);
+    } while (usedProcNames.has(procName));
+    usedProcNames.add(procName);
+
+    proceduresPerformed.push({
+        name: procName,
+        customName: '',
+        time: formatTimeLocal(new Date(arrivalTime.getTime() + getRandomNumber(1,15) * 60000)),
+        details: `Процедура виконана стандартно, реакція: ${getRandomElement(['стабільна', 'покращення', 'без змін'])}`,
+        effectiveness: getRandomElement(EFFECTIVENESS_OPTIONS).value
+    });
+  }
+  if (proceduresPerformed.length === 0) {
+    proceduresPerformed.push({ name: '', customName: '', time: '', details: '', effectiveness: '' });
+  }
+
+
+  return {
+    ...JSON.parse(JSON.stringify(INITIAL_PRE_HOSPITAL_FORM_DATA)), // Починаємо з чистого INITIAL_PRE_HOSPITAL_FORM_DATA
+    cardId: cardId,
+    _id: cardId, // Для імітації ID з бази даних при "редагуванні" тестових даних
+
+    incidentDateTime: formatDateTimeLocal(incidentTime),
+    arrivalDateTime: formatDateTimeLocal(arrivalTime),
+    sceneTypeValue: getRandomElement(SCENE_TYPE_OPTIONS.filter(o => o.value !== 'other' && o.value !== 'unknown')).value,
+    sceneTypeOther: '',
+    patientFullName: fullName,
+    patientGender: gender,
+    patientDateOfBirth: Math.random() < 0.8 ? formatDateLocal(patientDateOfBirth) : '', // 80% шанс вказати дату
+    patientApproximateAge: Math.random() < 0.8 && !patientDateOfBirth ? patientApproximateAge.toString() : '',
+
+    catastrophicHemorrhageControlled: hasCatastrophicBleeding,
+    catastrophicHemorrhageDetails: hasCatastrophicBleeding ? `Масивна кровотеча з ${getRandomElement(['стегна', 'плеча', 'передпліччя'])}. Накладено турнікет CAT G7 о ${formatTimeLocal(new Date(arrivalTime.getTime() - 2 * 60000))}. Кровотеча зупинена.` : '',
+
+    consciousnessLevel: getRandomElement(CONSCIOUSNESS_LEVELS_AVPU).value, 
+    airwayStatus: getRandomElement(AIRWAY_STATUS_OPTIONS).value, 
+    
+    breathingRate: getRandomElement(BREATHING_RATE_OPTIONS.filter(o => o.value !== 'custom')).value, 
+    breathingSaturation: getRandomElement(OXYGEN_SATURATION_OPTIONS.filter(o => o.value !== 'custom')).value, 
+    breathingQuality: getRandomElement(BREATHING_QUALITY_OPTIONS).value,
+    chestExcursion: getRandomElement(CHEST_EXCURSION_OPTIONS).value, 
+    auscultationLungs: getRandomElement(AUSCULTATION_LUNGS_OPTIONS).value, 
+    
+    pulseRate: getRandomElement(PULSE_RATE_OPTIONS.filter(o => o.value !== 'custom')).value, 
+    pulseQuality: getRandomElement(PULSE_QUALITY_OPTIONS).value,
+    pulseLocation: getRandomElement(PULSE_LOCATION_OPTIONS).value, 
+    bloodPressureSystolic: getRandomNumber(70, 180).toString(), 
+    bloodPressureDiastolic: getRandomNumber(40, 110).toString(), 
+    capillaryRefillTime: getRandomElement(CAPILLARY_REFILL_TIME_OPTIONS).value, 
+    skinStatus: getRandomElement(SKIN_STATUS_OPTIONS).value,
+    externalBleeding: getRandomElement(EXTERNAL_BLEEDING_OPTIONS).value, 
+
+    glasgowComaScaleEye: gcsEye, 
+    glasgowComaScaleVerbal: gcsVerbal, 
+    glasgowComaScaleMotor: gcsMotor, 
+    pupilReaction: getRandomElement(PUPIL_REACTION_OPTIONS).value,
+    motorSensoryStatus: getRandomElement(MOTOR_SENSORY_STATUS_OPTIONS).value, 
+    neurologicalStatusDetails: Math.random() < 0.2 ? `Спостерігався короткочасний епізод ${getRandomElement(['тремору', 'судом', 'сплутаності'])}.` : '',
+
+    bodyTemperature: getRandomElement(BODY_TEMPERATURE_OPTIONS.filter(o => o.value !== 'custom')).value, 
+    exposureDetails: `Пацієнт знайдений ${getRandomElement(['на вулиці', 'в приміщенні', 'в автомобілі'])}. ${getRandomElement(['Одяг відповідний погоді.', 'Одяг мокрий.', 'Ознаки переохолодження/перегріву.'])} Виявлено: ${getRandomElement(['забій голови', 'рвана рана передпліччя', 'підозра на перелом гомілки', 'множинні садна'])}.`,
+
+    complaints: Math.random() < 0.7 ? `Біль в ${getRandomElement(['голові', 'грудях', 'животі', 'нозі', 'руці'])}, ${getRandomElement(['нудота', 'запаморочення', 'слабкість'])}` : 'Скарг активно не пред\'являє (стан важкий).',
+    allergies: Math.random() < 0.15 ? `Алергія на ${getRandomElement(['пеніцилін', 'йод', 'цитрусові'])}` : 'Алергоанамнез не обтяжений.',
+    medicationsTaken: Math.random() < 0.2 ? `${getRandomElement(['Еналаприл', 'Бісопролол', 'Метформін'])} ${getRandomNumber(5,10)}мг ${getRandomElement(['вранці', 'двічі на день'])}` : 'Постійно ліків не приймає.',
+    pastMedicalHistory: Math.random() < 0.25 ? `${getRandomElement(['Гіпертонічна хвороба', 'ІХС', 'Цукровий діабет 2 типу', 'Бронхіальна астма'])}` : 'Хронічні захворювання заперечує.',
+    lastOralIntakeMeal: Math.random() < 0.6 ? `${getRandomElement(['Суп', 'Каша', 'Бутерброд'])}` : 'Не їв сьогодні.',
+    lastOralIntakeTime: Math.random() < 0.6 ? formatTimeLocal(new Date(incidentTime.getTime() - getRandomNumber(1,4)*60*60000)) : '',
+    eventsLeadingToInjury: `Зі слів ${getRandomElement(['самого пацієнта', 'свідків', 'родичів'])}: ${getRandomElement(['впав', 'потрапив у ДТП', 'отримав удар'])}`,
+    mechanismOfInjuryDetailed: `Механізм: ${getRandomElement(SCENE_TYPE_OPTIONS.filter(o => o.value !== 'other' && o.value !== 'unknown')).label}. Деталі: ... (потрібно додати більш специфічну генерацію)`,
+
+    medicationsAdministered: medicationsAdministered,
+    proceduresPerformed: proceduresPerformed,
+    ivAccessDetails: numMedications > 0 && medicationsAdministered.some(m => m.route === 'iv' || m.route === 'io') ? `Катетер G${getRandomElement([18,20,22])} у ${getRandomElement(['ліктьовій вені справа', 'ліктьовій вені зліва', 'кисті'])}. Інфузія ${getRandomElement(['NaCl 0.9%', 'Р-н Рінгера'])} ${getRandomElement([200,400,500])} мл.` : (Math.random() < 0.3 ? 'Спроба в/в доступу невдала.' : ''),
+
+    transportationMethod: getRandomElement(TRANSPORTATION_METHOD_OPTIONS.filter(o => o.value !== 'other' && o.value !== 'not_transported')).value,
+    transportationOtherDetails: '',
+    destinationFacility: `Міська лікарня №${getRandomNumber(1,5)}, ${getRandomElement(['Приймальне відділення', 'Відділення політравми', 'Реанімація'])}`,
+
+    triageCategory: getRandomElement(TRIAGE_CATEGORIES_OPTIONS.filter(o => o.value !== 'unknown')).value,
+    // rtsScore - розрахується автоматично у формі
+    additionalNotes: Math.random() < 0.3 ? `Пацієнт ${getRandomElement(['збуджений', 'заторможений', 'агресивний'])}. ${getRandomElement(['Запах алкоголю з рота.', ''])}` : '',
+    medicalTeamResponsible: `${getRandomElement(['Лікар', 'Фельдшер'])} ${getRandomElement(randomLastName)} ${getRandomElement(randomMaleName).charAt(0)}.${getRandomElement(randomPatronymicMale).charAt(0)}.`,
+  };
 };

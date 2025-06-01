@@ -1,831 +1,672 @@
-// frontend/src/components/PatientCard/PreHospitalCareSection.jsx
-import React, { useState, useCallback, useEffect, useMemo } from 'react';
+// frontend/src/components/PreHospitalCare/PreHospitalCareSection.jsx
+import React, { useState, useEffect, useCallback } from 'react';
 import {
-    Box, Button, Container, FormControl, FormLabel, Heading, HStack, IconButton, Input,
-    InputGroup, InputRightElement, Select, SimpleGrid, Text, Textarea, VStack, useToast, Divider,
-    Accordion, AccordionItem, AccordionButton, AccordionPanel, AccordionIcon, Checkbox,
-    Spinner, Flex, useColorModeValue, Tag, Tooltip, Icon
+  Box, Heading, FormControl, FormLabel, Input, Select, Textarea, Button,
+  Grid, GridItem, VStack, HStack, Text, IconButton, Checkbox,
+  Accordion, AccordionItem, AccordionButton, AccordionPanel, AccordionIcon,
+  NumberInput, NumberInputField, NumberInputStepper, NumberIncrementStepper, NumberDecrementStepper,
+  useToast, Divider, Flex, Spacer, SimpleGrid, Spinner
 } from '@chakra-ui/react';
-import { AddIcon, DeleteIcon, TimeIcon, ArrowBackIcon, QuestionOutlineIcon, WarningTwoIcon, CheckCircleIcon,
-    ChatIcon, ArrowForwardIcon } from '@chakra-ui/icons';
-import { useParams, useNavigate } from 'react-router-dom';
-import constants from './patientCardConstants';
-import { getPreHospitalTestData } from './testData';
+import { AddIcon, DeleteIcon } from '@chakra-ui/icons';
 import {
-    createPreHospitalRecord,
-    getTraumaRecordById,
-    updateTraumaRecord
+  GENDER_OPTIONS, CONSCIOUSNESS_LEVELS_AVPU, AIRWAY_STATUS_OPTIONS,
+  BREATHING_RATE_OPTIONS, OXYGEN_SATURATION_OPTIONS, BREATHING_QUALITY_OPTIONS,
+  CHEST_EXCURSION_OPTIONS, AUSCULTATION_LUNGS_OPTIONS,
+  PULSE_RATE_OPTIONS, PULSE_QUALITY_OPTIONS, PULSE_LOCATION_OPTIONS,
+  CAPILLARY_REFILL_TIME_OPTIONS, SKIN_STATUS_OPTIONS, EXTERNAL_BLEEDING_OPTIONS,
+  GCS_EYE_OPTIONS, GCS_VERBAL_OPTIONS, GCS_MOTOR_OPTIONS, PUPIL_REACTION_OPTIONS,
+  MOTOR_SENSORY_STATUS_OPTIONS, BODY_TEMPERATURE_OPTIONS,
+  TRANSPORTATION_METHOD_OPTIONS, TRIAGE_CATEGORIES_OPTIONS, EFFECTIVENESS_OPTIONS,
+  SCENE_TYPE_OPTIONS, MEDICATION_ROUTE_OPTIONS,
+  COMMON_PREHOSPITAL_MEDICATIONS, COMMON_PREHOSPITAL_PROCEDURES,
+  INITIAL_PRE_HOSPITAL_FORM_DATA,
+} from './patientCardConstants';
+import { generatePreHospitalTestData } from './testData';
+
+// Імпорт стилів
+import {
+  mainBoxStyles, headerFlexStyles, headerTitleStyles, cardIdTextStyles,
+  accordionItemStyles, accordionButtonStyles, accordionButtonTextStyles, accordionPanelStyles,
+  formControlLabelStyles, inputStyles, nestedListBoxStyles, actionButtonsHStackStyles,
+  primaryButtonStyles, secondaryButtonStyles
+} from './preHospitalCareStyles'; 
+
+import { 
+    createPreHospitalRecord, 
+    updateTraumaRecord, 
+    getTraumaRecordById 
 } from '../../services/traumaRecord.api';
 
-// Утиліти для часу та дати
-const getCurrentTime = () => new Date().toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit' });
-
-const getCurrentDateTimeLocal = () => {
-    const now = new Date();
-    now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-    return now.toISOString().slice(0, 16);
+const generateClientSideId = () => {
+  let result = 'TRM-';
+  const alphanumeric = 'ABCDEFGHJKLMNPQRSTUVWXYZ123456789';
+  for (let i = 0; i < 6; i++) {
+    result += alphanumeric.charAt(Math.floor(Math.random() * alphanumeric.length));
+  }
+  return result;
 };
 
-const formatDateForInput = (dateString) => {
-    if (!dateString) return '';
-    try {
-        const date = new Date(dateString);
-        if (isNaN(date.getTime())) return '';
-        return date.toISOString().split('T')[0];
-    } catch (e) {
-        console.error("Error formatting date for input:", e);
-        return '';
+const CustomEntrySelect = ({
+  value, onChange, options, customValue, onCustomChange,
+  placeholder, customPlaceholder, namePrefix, selectProps = {}, inputProps = {}
+}) => {
+  const [showCustomInput, setShowCustomInput] = useState(false);
+  useEffect(() => {
+    if (value === 'custom_entry' || (customValue && (!value || value === 'custom_entry' || (value && !options.some(opt => (typeof opt === 'object' ? opt.value === value : opt === value)))))) {
+        setShowCustomInput(true);
+    } else {
+        setShowCustomInput(false);
     }
+  }, [value, customValue, options]);
+
+  const handleSelectChange = (e) => {
+    const newValue = e.target.value;
+    onChange(e);
+    if (newValue === 'custom_entry') setShowCustomInput(true);
+    else { setShowCustomInput(false); if (onCustomChange) onCustomChange(''); }
+  };
+  const handleInputChange = (e) => { if (onCustomChange) onCustomChange(e.target.value); };
+
+  return (
+    <VStack align="stretch" spacing={2} w="100%">
+      <Select size="sm" value={value || ''} onChange={handleSelectChange} placeholder={placeholder || "Оберіть..."} {...inputStyles} {...selectProps}>
+        <option value="custom_entry">Інше (ввести вручну)</option>
+        {options.map((opt, idx) => (
+          typeof opt === 'object' ?
+            <option key={`${namePrefix}-opt-${idx}`} value={opt.value}>{opt.label}</option> :
+            <option key={`${namePrefix}-opt-${idx}`} value={opt}>{opt}</option>
+        ))}
+      </Select>
+      {showCustomInput && (
+        <Input mt={1} size="sm" placeholder={customPlaceholder || "Введіть власне значення"} value={customValue || ''} onChange={handleInputChange} {...inputStyles} {...inputProps} />
+      )}
+    </VStack>
+  );
 };
 
-const formatDateTimeForInput = (dateTimeString) => {
-    if (!dateTimeString) return '';
-    try {
-        const date = new Date(dateTimeString);
-        if (isNaN(date.getTime())) return '';
-        date.setMinutes(date.getMinutes() - date.getTimezoneOffset());
-        return date.toISOString().slice(0, 16);
-    } catch (e) {
-        console.error("Error formatting datetime for input:", e);
-        return '';
+const PreHospitalCareSection = ({ recordIdToEdit, onSave, onCancel }) => {
+  // Функція для отримання початкового стану
+  const getInitialFormState = useCallback((idToEdit) => {
+    let baseState = JSON.parse(JSON.stringify(INITIAL_PRE_HOSPITAL_FORM_DATA));
+    if (idToEdit) {
+      baseState.cardId = idToEdit;
+      baseState._id = idToEdit;
+    } else {
+      baseState.cardId = generateClientSideId();
+      delete baseState._id;
     }
-};
+    return baseState;
+  }, []); // recordIdToEdit прибрано з залежностей, бо передається як аргумент
 
-const calculateAge = (dateOfBirth) => {
-    if (!dateOfBirth) return '';
-    const birthDate = new Date(dateOfBirth);
-    if (isNaN(birthDate.getTime())) return '';
-    const today = new Date();
-    let age = today.getFullYear() - birthDate.getFullYear();
-    const m = today.getMonth() - birthDate.getMonth();
-    if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
-        age--;
+  const [formData, setFormData] = useState(() => getInitialFormState(recordIdToEdit));
+  const [isLoading, setIsLoading] = useState(false); // Стан для індикатора завантаження
+  const [isSubmitting, setIsSubmitting] = useState(false); // Стан для індикатора відправки
+  
+  const cardDisplayId = formData?.cardId || '';
+  const toast = useToast();
+
+  const [breathingRateCustom, setBreathingRateCustom] = useState('');
+  const [breathingSaturationCustom, setBreathingSaturationCustom] = useState('');
+  const [pulseRateCustom, setPulseRateCustom] = useState('');
+  const [bodyTemperatureCustom, setBodyTemperatureCustom] = useState('');
+
+  const isPatientFullNameUnknown = formData.patientFullName?.toLowerCase().includes('невідом') || false;
+
+  useEffect(() => {
+    if (isPatientFullNameUnknown) {
+      if (formData.patientDateOfBirth) {
+        setFormData(prev => ({ ...prev, patientDateOfBirth: '' }));
+      }
+    } else {
+      if (formData.patientDateOfBirth && formData.patientApproximateAge) {
+         setFormData(prev => ({ ...prev, patientApproximateAge: '' }));
+      }
     }
-    return age >= 0 ? age.toString() : '';
-};
+  }, [isPatientFullNameUnknown, formData.patientDateOfBirth, formData.patientApproximateAge]); // Додано formData.patientApproximateAge
 
+  const calculateGCS = useCallback(() => {
+    const eye = formData.glasgowComaScaleEye === 'NV' ? 0 : parseInt(formData.glasgowComaScaleEye, 10) || 0;
+    const verbal = formData.glasgowComaScaleVerbal === 'NV' ? 0 : parseInt(formData.glasgowComaScaleVerbal, 10) || 0;
+    const motor = formData.glasgowComaScaleMotor === 'NV' ? 0 : parseInt(formData.glasgowComaScaleMotor, 10) || 0;
+    const isNV = formData.glasgowComaScaleEye === 'NV' || formData.glasgowComaScaleVerbal === 'NV' || formData.glasgowComaScaleMotor === 'NV';
+    const total = eye + verbal + motor;
+    return isNV ? `(${total})T` : total.toString();
+  }, [formData.glasgowComaScaleEye, formData.glasgowComaScaleVerbal, formData.glasgowComaScaleMotor]);
 
-function PreHospitalCareSection() {
-    const { id: recordId } = useParams();
-    const navigate = useNavigate();
-    const isEditMode = !!recordId;
+  const calculateRTS = useCallback((gcsTotalString, systolicBPString, respRateValue) => {
+    if (gcsTotalString === null || gcsTotalString === undefined || systolicBPString === null || systolicBPString === undefined || respRateValue === null || respRateValue === undefined) return 'Н/Д';
+    let gcsScore = 0;
+    const gcsMatch = gcsTotalString.toString().match(/\d+/);
+    const gcsNum = gcsMatch ? parseInt(gcsMatch[0], 10) : 0;
+    if (gcsNum >= 13) gcsScore = 4; else if (gcsNum >= 9) gcsScore = 3; else if (gcsNum >= 6) gcsScore = 2; else if (gcsNum >= 4) gcsScore = 1; else gcsScore = 0;
+    let bpScore = 0;
+    const bpNum = parseInt(systolicBPString, 10);
+    if (isNaN(bpNum) && systolicBPString !== '') return 'Н/Д'; if (isNaN(bpNum) && systolicBPString === '') { bpScore = 0; }
+    else { if (bpNum > 89) bpScore = 4; else if (bpNum >= 76) bpScore = 3; else if (bpNum >= 50) bpScore = 2; else if (bpNum >= 1) bpScore = 1; else bpScore = 0; }
+    let rrScore = 0; let rrNum = NaN;
+    if (typeof respRateValue === 'string') {
+      if (respRateValue.includes('>30') || respRateValue.includes('25-30')) rrNum = 29;
+      else if (respRateValue.includes('10-12') || respRateValue.includes('13-20') || respRateValue.includes('21-24')) rrNum = 15;
+      else if (respRateValue.includes('6-9')) rrNum = 8;
+      else if (respRateValue.includes('1-5') || respRateValue === '0' || respRateValue === 'apneic_no_effort' || respRateValue === 'agonal_gasping') rrNum = 0;
+      else { const parsedRR = parseInt(respRateValue, 10); if (!isNaN(parsedRR)) rrNum = parsedRR; }
+    } else if (typeof respRateValue === 'number') rrNum = respRateValue;
+    if (isNaN(rrNum) && respRateValue !== '') return 'Н/Д'; if (isNaN(rrNum) && respRateValue === '') { rrScore = 0; }
+    else { if (rrNum >= 10 && rrNum <= 29) rrScore = 4; else if (rrNum > 29) rrScore = 3; else if (rrNum >= 6 && rrNum <= 9) rrScore = 2; else if (rrNum >= 1 && rrNum <= 5) rrScore = 1; else rrScore = 0; }
+    if ((isNaN(bpNum) && systolicBPString !== '') || (isNaN(rrNum) && respRateValue !== '')) return 'Н/Д';
+    return (gcsScore + bpScore + rrScore).toString();
+  }, []);
 
-    // Кольорові схеми з вашої теми
-    const brandColorScheme = "brand";
-    const highlightColorScheme = "highlight";
-    const neutralColorScheme = "gray";
-    const patientInfoColorScheme = "blue";
-    const injuriesColorScheme = "orange";
-    const interventionsColorScheme = "green";
-    const medicationsColorScheme = "purple";
-    const transportColorScheme = "teal";
+   // useEffect для завантаження даних при редагуванні
+  useEffect(() => {
+    const loadRecordData = async (id) => {
+      setIsLoading(true);
+      try {
+        const response = await getTraumaRecordById(id); // ВИКЛИК API
+        if (response.data) {
+          const loadedServerData = response.data; // Припускаємо, що API повертає весь об'єкт картки
+          
+          let baseFormData = JSON.parse(JSON.stringify(INITIAL_PRE_HOSPITAL_FORM_DATA));
+          // Важливо: cardId з сервера має пріоритет, якщо він є, інакше беремо переданий recordIdToEdit
+          const currentCardId = loadedServerData.cardId || id; 
+          
+          let mergedData = { 
+            ...baseFormData, 
+            ...loadedServerData, 
+            cardId: currentCardId, // Встановлюємо cardId
+            _id: loadedServerData._id || id // Встановлюємо MongoDB _id
+          };
+          
+          // Ініціалізація кастомних станів та полів "Інше"
+          let tempBRC = ''; if (mergedData.breathingRate && !BREATHING_RATE_OPTIONS.find(o=>o.value===mergedData.breathingRate)) {tempBRC=mergedData.breathingRate; mergedData.breathingRate='custom';} setBreathingRateCustom(tempBRC);
+          let tempBSC = ''; if (mergedData.breathingSaturation && !OXYGEN_SATURATION_OPTIONS.find(o=>o.value===mergedData.breathingSaturation)) {tempBSC=mergedData.breathingSaturation; mergedData.breathingSaturation='custom';} setBreathingSaturationCustom(tempBSC);
+          let tempPRC = ''; if (mergedData.pulseRate && !PULSE_RATE_OPTIONS.find(o=>o.value===mergedData.pulseRate)) {tempPRC=mergedData.pulseRate; mergedData.pulseRate='custom';} setPulseRateCustom(tempPRC);
+          let tempBTC = ''; if (mergedData.bodyTemperature && !BODY_TEMPERATURE_OPTIONS.find(o=>o.value===mergedData.bodyTemperature)) {tempBTC=mergedData.bodyTemperature; mergedData.bodyTemperature='custom';} setBodyTemperatureCustom(tempBTC);
+          if (mergedData.sceneTypeValue && !SCENE_TYPE_OPTIONS.find(o=>o.value===mergedData.sceneTypeValue)) {mergedData.sceneTypeOther = mergedData.sceneTypeValue; mergedData.sceneTypeValue = 'other';} else if (mergedData.sceneTypeValue !== 'other') {mergedData.sceneTypeOther = '';}
 
-    // Кольори для UI елементів
-    const pageBg = useColorModeValue('bg.page.light', 'bg.page.dark');
-    const contentBg = useColorModeValue('bg.content.light', 'bg.content.dark');
-    const subtlePaneBg = useColorModeValue('gray.50', 'gray.800');
-    const inputBg = useColorModeValue('white', 'gray.700');
-    const mainBorderColor = useColorModeValue('gray.200', 'gray.700');
-    const formLabelColor = useColorModeValue('gray.600', 'gray.400');
-    const mainHeadingColor = useColorModeValue(`${brandColorScheme}.600`, `${brandColorScheme}.300`);
-    const sectionTitleColor = (colorScheme = brandColorScheme) => useColorModeValue(`${colorScheme}.600`, `${colorScheme}.300`);
+          mergedData.medicationsAdministered = (mergedData.medicationsAdministered || []).map(med => {
+              let fm = {...med};
+              if(med.name && !COMMON_PREHOSPITAL_MEDICATIONS.includes(med.name) && med.name!=='custom_entry'){fm.customName=med.name;fm.name='custom_entry';}else{fm.customName=med.customName||'';}
+              if(med.route && !MEDICATION_ROUTE_OPTIONS.find(o=>o.value===med.route) && med.route!=='custom_entry'){fm.customRoute=med.route;fm.route='custom_entry';}else{fm.customRoute=med.customRoute||'';}
+              return fm;
+          });
+          mergedData.proceduresPerformed = (mergedData.proceduresPerformed || []).map(proc => {
+              let fp = {...proc};
+              if(proc.name && !COMMON_PREHOSPITAL_PROCEDURES.includes(proc.name) && proc.name!=='custom_entry'){fp.customName=proc.name;fp.name='custom_entry';}else{fp.customName=proc.customName||'';}
+              return fp;
+          });
 
-
-    const getInitialFormData = useCallback(() => {
-        const initialData = JSON.parse(JSON.stringify(constants.initialPreHospitalFormData));
-        if (!isEditMode) {
-            initialData.internalCardId = `PH-${Date.now().toString(36).slice(-4).toUpperCase()}`;
-            initialData.patientInfo.tempPatientId = `TEMP-${Date.now().toString(36).slice(-4).toUpperCase()}`;
-        }
-        return initialData;
-    }, [isEditMode]);
-
-    const [formData, setFormData] = useState(getInitialFormData);
-    const [isLoading, setIsLoading] = useState(isEditMode);
-    const [isSubmitting, setIsSubmitting] = useState(false);
-    const toast = useToast();
-
-    const calculatedAge = useMemo(() => {
-        return calculateAge(formData.patientInfo?.dateOfBirth);
-    }, [formData.patientInfo?.dateOfBirth]);
-
-
-    useEffect(() => {
-        if (isEditMode && recordId) {
-            const fetchRecord = async () => {
-                setIsLoading(true);
-                try {
-                    const response = await getTraumaRecordById(recordId);
-                    const fetchedData = response.data;
-                    const initialTemplate = getInitialFormData();
-
-                    const adaptedData = {
-                        ...initialTemplate,
-                        ...fetchedData,
-                        incidentDateTime: formatDateTimeForInput(fetchedData.incidentDateTime),
-                        teamArrivalTimeScene: formatDateTimeForInput(fetchedData.teamArrivalTimeScene),
-                        patientContactTime: formatDateTimeForInput(fetchedData.patientContactTime),
-                        patientInfo: {
-                            ...initialTemplate.patientInfo,
-                            ...(fetchedData.patientInfo || {}),
-                            dateOfBirth: formatDateForInput(fetchedData.patientInfo?.dateOfBirth),
-                        },
-                        transportation: {
-                            ...initialTemplate.transportation,
-                            ...(fetchedData.transportation || {}),
-                            departureTimeFromScene: formatDateTimeForInput(fetchedData.transportation?.departureTimeFromScene),
-                        },
-                        marchSurvey: {
-                            ...initialTemplate.marchSurvey,
-                            ...(fetchedData.marchSurvey || {}),
-                        },
-                        vitalSignsLog: Array.isArray(fetchedData.vitalSignsLog) ? fetchedData.vitalSignsLog.map(vs => ({...vs, timestamp: vs.timestamp || getCurrentTime() })) : [],
-                        suspectedInjuries: Array.isArray(fetchedData.suspectedInjuries) ? fetchedData.suspectedInjuries : [],
-                        interventionsPerformed: Array.isArray(fetchedData.interventionsPerformed) ? fetchedData.interventionsPerformed.map(ip => ({...ip, timestamp: ip.timestamp || getCurrentTime() })) : [],
-                        medicationsAdministered: Array.isArray(fetchedData.medicationsAdministered) ? fetchedData.medicationsAdministered.map(med => ({...med, timestamp: med.timestamp || getCurrentTime() })) : [],
-                    };
-                    setFormData(adaptedData);
-                } catch (error) {
-                    console.error("Error fetching record for edit:", error);
-                    toast({
-                        title: "Помилка завантаження картки",
-                        description: error.response?.data?.message || error.message,
-                        status: "error", duration: 7000, isClosable: true, position: "top-right"
-                    });
-                    navigate('/trauma-journal');
-                } finally { setIsLoading(false); }
-            };
-            fetchRecord();
+          setFormData(mergedData);
+          toast({ title: "Дані картки завантажено", status: "success", duration: 2000, isClosable: true, position: "top-right" });
         } else {
-            setFormData(getInitialFormData());
-            setIsLoading(false);
+            // Якщо API не повернув дані, але не було помилки (малоймовірно з axios)
+            toast({ title: "Не вдалося завантажити дані картки", description: "Сервер повернув порожню відповідь.", status: "warning", duration: 3000, isClosable: true, position: "top-right" });
+            setFormData(getInitialFormState(id)); // Скидаємо до початкового з ID
         }
-    }, [recordId, isEditMode, navigate, toast, getInitialFormData]);
-
-    const handleInputChange = useCallback((path, value) => {
-        setFormData(prevData => {
-            const keys = path.split('.');
-            const newState = JSON.parse(JSON.stringify(prevData));
-            let current = newState;
-            for (let i = 0; i < keys.length - 1; i++) {
-                const key = keys[i];
-                if (!current[key] || typeof current[key] !== 'object') {
-                    const nextKeyIsNumeric = !isNaN(parseInt(keys[i + 1], 10));
-                    current[key] = nextKeyIsNumeric ? [] : {};
-                }
-                current = current[key];
-            }
-            const finalKey = keys[keys.length - 1];
-
-            if (path === 'patientInfo.isUnknown') {
-                current[finalKey] = value;
-                if (value === true) {
-                    const initialPatientInfo = constants.initialPreHospitalFormData.patientInfo;
-                    newState.patientInfo = {
-                        ...initialPatientInfo,
-                        isUnknown: true,
-                        tempPatientId: prevData.patientInfo.tempPatientId || `TEMP-${Date.now().toString(36).slice(-4).toUpperCase()}`,
-                        // Зберігаємо значення з AMPLE, якщо вони були введені до позначки "Невідомий"
-                        allergiesShort: prevData.patientInfo.allergiesShort,
-                        medicationsShort: prevData.patientInfo.medicationsShort,
-                        medicalHistoryShort: prevData.patientInfo.medicalHistoryShort,
-                        ageYears: prevData.patientInfo.ageYears, // Зберігаємо орієнтовний вік
-                    };
-                }
-            } else if (path === 'patientInfo.dateOfBirth' && value === '') {
-                // Якщо дата народження очищена, дозволяємо редагувати орієнтовний вік
-                current[finalKey] = value;
-                newState.patientInfo.ageYears = prevData.patientInfo.ageYears; // Зберігаємо поточне значення ageYears
-            }
-            else {
-                current[finalKey] = value;
-            }
-            return newState;
+      } catch (error) {
+        console.error("Помилка завантаження даних картки для редагування:", error);
+        toast({
+          title: "Помилка завантаження картки",
+          description: error.response?.data?.message || error.message || "Невідома помилка",
+          status: "error",
+          duration: 5000,
+          isClosable: true,
+          position: "top-right"
         });
-    }, []);
-
-    const addToArray = useCallback((arrayPath, itemTemplate) => {
-        setFormData(prevData => {
-            const newState = JSON.parse(JSON.stringify(prevData));
-            const keys = arrayPath.split('.');
-            let current = newState;
-            for (let i = 0; i < keys.length - 1; i++) {
-                if (!current[keys[i]]) current[keys[i]] = {};
-                current = current[keys[i]];
-            }
-            const targetArrayName = keys[keys.length - 1];
-            if (!Array.isArray(current[targetArrayName])) {
-                current[targetArrayName] = [];
-            }
-            let newItem = { ...itemTemplate };
-            if (itemTemplate.hasOwnProperty('timestamp')) {
-                newItem.timestamp = getCurrentTime();
-            }
-            current[targetArrayName].push(newItem);
-            return newState;
-        });
-    }, []);
-
-    const removeFromArray = useCallback((arrayPath, index) => {
-        setFormData(prevData => {
-            const newState = JSON.parse(JSON.stringify(prevData));
-            const keys = arrayPath.split('.');
-            let current = newState;
-            for (let i = 0; i < keys.length - 1; i++) {
-                current = current[keys[i]];
-            }
-            const targetArrayName = keys[keys.length - 1];
-            if (current[targetArrayName] && Array.isArray(current[targetArrayName]) && current[targetArrayName][index] !== undefined) {
-                current[targetArrayName].splice(index, 1);
-            }
-            return newState;
-        });
-    }, []);
-
-    const updateInArray = useCallback((arrayPath, index, field, value) => {
-        setFormData(prevData => {
-            const newState = JSON.parse(JSON.stringify(prevData));
-            const keys = arrayPath.split('.');
-            let current = newState;
-            for (let i = 0; i < keys.length - 1; i++) {
-                if (!current[keys[i]]) current[keys[i]] = {};
-                current = current[keys[i]];
-            }
-            const targetArrayName = keys[keys.length - 1];
-            if (current[targetArrayName] && Array.isArray(current[targetArrayName]) && current[targetArrayName][index]) {
-                current[targetArrayName][index][field] = value;
-            }
-            return newState;
-        });
-    }, []);
-
-    const prepareDataForSubmit = (data) => {
-        const dataToSubmit = JSON.parse(JSON.stringify(data));
-        if (dataToSubmit.patientInfo?.dateOfBirth) {
-            dataToSubmit.patientInfo.ageYears = calculateAge(dataToSubmit.patientInfo.dateOfBirth);
-        }
-        ['vitalSignsLog', 'suspectedInjuries', 'interventionsPerformed', 'medicationsAdministered'].forEach(key => {
-            if (Array.isArray(dataToSubmit[key])) {
-                dataToSubmit[key] = dataToSubmit[key].filter(item => {
-                    const { timestamp, ...restOfItem } = item;
-                    return Object.values(restOfItem).some(val => val !== '' && val !== null && val !== undefined);
-                });
-            }
-        });
-        return dataToSubmit;
+        // Якщо не вдалося завантажити, скидаємо до початкового стану з поточним ID
+        setFormData(getInitialFormState(id));
+      } finally {
+        setIsLoading(false);
+      }
     };
 
-    const handleSave = async () => {
-        // Валідація залишається важливою, але тут не показана для скорочення
-        setIsSubmitting(true);
-        const dataToSubmit = prepareDataForSubmit(formData);
-        console.log("Дані для відправки:", JSON.stringify(dataToSubmit, null, 2));
-        try {
-            let response;
-            if (isEditMode && recordId) {
-                response = await updateTraumaRecord(recordId, dataToSubmit);
-                toast({
-                    title: "Картку успішно оновлено!",
-                    description: `ID картки: ${response.data.record.internalCardId}`,
-                    status: "success", duration: 5000, isClosable: true, position: "top-right",
-                });
-                navigate('/trauma-journal');
-            } else {
-                response = await createPreHospitalRecord(dataToSubmit);
-                toast({
-                    title: "Картку успішно створено!",
-                    description: `ID картки: ${response.data.record.internalCardId} (MongoDB ID: ${response.data.record._id})`,
-                    status: "success", duration: 7000, isClosable: true, position: "top-right",
-                });
-                handleClear(false);
-            }
-        } catch (error) {
-            console.error("Помилка при збереженні картки:", error.response || error);
-            const errorMsg = error.response?.data?.message || error.message || "Невідома помилка сервера";
-            let errorDetails = "";
-            if (error.response?.data?.errors && Array.isArray(error.response.data.errors)) {
-                errorDetails = error.response.data.errors.map(err => `${err.path ? err.path + ': ' : ''}${err.msg}`).join('; ');
-            }
-            toast({
-                title: `Помилка ${isEditMode ? 'оновлення' : 'створення'} картки`,
-                description: `${errorMsg}${errorDetails ? ". Деталі: " + errorDetails : ""}`,
-                status: "error", duration: 9000, isClosable: true, position: "top-right",
-            });
-        } finally { setIsSubmitting(false); }
-    };
+    if (recordIdToEdit) {
+      // Завантажуємо дані тільки якщо formData.cardId ще не відповідає recordIdToEdit (уникнення повторного завантаження)
+      // Або якщо _id порожній (означає, що дані ще не завантажені для цього ID)
+      if (formData.cardId !== recordIdToEdit || !formData._id) {
+          loadRecordData(recordIdToEdit);
+      }
+    } else {
+      // Якщо ми перейшли з редагування на створення
+      if (formData._id || !formData.cardId) { // Якщо є _id (залишився від редагування) або немає cardId
+        setFormData(getInitialFormState(null));
+        setBreathingRateCustom(''); setBreathingSaturationCustom(''); setPulseRateCustom(''); setBodyTemperatureCustom('');
+      }
+    }
+  }, [recordIdToEdit, getInitialFormState, toast, formData.cardId, formData._id]); // Додано formData.cardId та formData._id для більш точного контролю
+  
+  
+  useEffect(() => {
+    let updates = {};
+    let needsUpdate = false;
+    if (formData.breathingQuality === 'apneic_no_effort' || formData.breathingQuality === 'agonal_gasping') {
+      if (formData.breathingRate !== '0') { updates.breathingRate = '0'; needsUpdate = true; if(formData.breathingRate === 'custom') setBreathingRateCustom(''); }
+      if (formData.breathingSaturation !== 'unable') { updates.breathingSaturation = 'unable'; needsUpdate = true; if(formData.breathingSaturation === 'custom') setBreathingSaturationCustom('');}
+    }
+    if (formData.pulseQuality === 'absent_central') {
+      if (formData.bloodPressureSystolic || formData.bloodPressureDiastolic) {
+        updates.bloodPressureSystolic = ''; updates.bloodPressureDiastolic = ''; needsUpdate = true;
+      }
+      if (formData.capillaryRefillTime !== 'unable') { updates.capillaryRefillTime = 'unable'; needsUpdate = true; }
+    }
+    const gcs = calculateGCS();
+    const currentRespRateForRTS = formData.breathingRate === 'custom' ? breathingRateCustom : formData.breathingRate;
+    const rts = calculateRTS(gcs, formData.bloodPressureSystolic || '', currentRespRateForRTS);
+    if (formData.rtsScore !== rts) { updates.rtsScore = rts; needsUpdate = true; }
+    if (needsUpdate) setFormData(prev => ({ ...prev, ...updates }));
+  }, [
+      formData.breathingQuality, formData.pulseQuality, formData.breathingRate, formData.breathingSaturation, 
+      formData.bloodPressureSystolic, formData.bloodPressureDiastolic, formData.capillaryRefillTime,
+      formData.glasgowComaScaleEye, formData.glasgowComaScaleVerbal, formData.glasgowComaScaleMotor,
+      breathingRateCustom, calculateGCS, calculateRTS
+    ]);
 
-    const handleClear = (navigateOnEdit = true) => {
-        const newInitialData = getInitialFormData();
-        setFormData(newInitialData);
-        if (isEditMode && navigateOnEdit) {
-            navigate('/prehospital-care');
-        }
-        toast({ title: "Форму очищено.", status: "info", duration: 2000, isClosable: true, position: "top-right" });
-    };
+  const handleChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    if (name === 'breathingRate' && value !== 'custom') setBreathingRateCustom('');
+    if (name === 'breathingSaturation' && value !== 'custom') setBreathingSaturationCustom('');
+    if (name === 'pulseRate' && value !== 'custom') setPulseRateCustom('');
+    if (name === 'bodyTemperature' && value !== 'custom') setBodyTemperatureCustom('');
+    if (name === 'sceneTypeValue' && value !== 'other') {
+      setFormData(prev => ({ ...prev, sceneTypeOther: '' }));
+    }
+    setFormData(prev => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
+  };
+  
+  const handleNumericChange = (name, valueAsString, valueAsNumber) => {
+    setFormData(prev => ({ ...prev, [name]: valueAsString === '' ? '' : valueAsNumber }));
+  };
 
-    const handleFillTestData = () => {
-        const currentInternalId = formData.internalCardId;
-        const currentTempPatientId = formData.patientInfo?.tempPatientId;
-        const testData = getPreHospitalTestData(currentInternalId, currentTempPatientId);
-        setFormData(testData);
-        toast({ title: "Заповнено тестовими даними.", status: "info", duration: 2000, isClosable: true, position: "top-right" });
-    };
-
-    // Стилі для акордеону та міток
-    const accordionItemBaseStyle = {
-        border: 'none',
-        bg: contentBg,
-        borderRadius: "2xl", // Збільшено заокруглення
-        boxShadow: "xl",    // Виразніша тінь
-        mb: 8,              // Збільшено відступ між секціями
-        overflow: "hidden"
-    };
-    const accordionButtonBaseStyle = (colorScheme = brandColorScheme) => ({
-        bg: useColorModeValue(`${colorScheme}.50`, `${colorScheme}.800`),
-        color: useColorModeValue(`${colorScheme}.700`, `${colorScheme}.200`),
-        py: '18px', // Збільшено вертикальний padding
-        px: 6,
-        fontWeight: "semibold",
-        fontSize: "xl",
-        textAlign: "left",
-        justifyContent: "space-between",
-        borderBottomWidth: "1px",
-        borderBottomColor: "transparent",
-        _hover: {
-            bg: useColorModeValue(`${colorScheme}.100`, `${colorScheme}.700`),
-        },
-        _expanded: {
-            bg: useColorModeValue(`${colorScheme}.600`, `${colorScheme}.500`),
-            color: useColorModeValue('white', 'gray.100'), // Змінено на світліший колір для темного режиму
-            borderBottomColor: useColorModeValue(`${colorScheme}.300`, `${colorScheme}.600`),
-        },
+  const handleNestedListChange = (listName, index, field, value) => {
+    setFormData(prev => {
+      const updatedList = JSON.parse(JSON.stringify(prev[listName] || []));
+      if (!updatedList[index]) updatedList[index] = {};
+      updatedList[index][field] = value;
+      if (field === 'name' && value !== 'custom_entry') updatedList[index].customName = '';
+      if (field === 'route' && value !== 'custom_entry') updatedList[index].customRoute = '';
+      return { ...prev, [listName]: updatedList };
     });
-    const formLabelBaseStyle = {
-        fontSize: "md",
-        fontWeight: "medium",
-        color: formLabelColor,
-        mb: 2,
+  };
+
+   const handleNestedListCustomChange = (listName, index, field, value) => {
+    setFormData(prev => {
+      const updatedList = JSON.parse(JSON.stringify(prev[listName] || []));
+      if (!updatedList[index]) updatedList[index] = {};
+      updatedList[index][field] = value;
+      if (field === 'customName' && value) updatedList[index].name = 'custom_entry';
+      if (field === 'customRoute' && value) updatedList[index].route = 'custom_entry';
+      if (field === 'customName' && !value && updatedList[index].name === 'custom_entry') updatedList[index].name = '';
+      if (field === 'customRoute' && !value && updatedList[index].route === 'custom_entry') updatedList[index].route = '';
+      return { ...prev, [listName]: updatedList };
+    });
+  };
+
+  const addNestedListItem = (listName) => {
+    let newItem;
+    if (listName === 'medicationsAdministered') {
+      newItem = { name: '', customName: '', dosage: '', route: '', customRoute: '', time: '', effectiveness: '' };
+    } else if (listName === 'proceduresPerformed') {
+      newItem = { name: '', customName: '', time: '', details: '', effectiveness: '' };
+    }
+    // Гарантуємо, що існуючий список є масивом перед додаванням
+    const currentList = Array.isArray(formData[listName]) ? formData[listName] : [];
+    if (newItem) {
+      setFormData(prev => ({ ...prev, [listName]: [...currentList, newItem] }));
+    }
+  };
+
+  const removeNestedListItem = (listName, index) => {
+    setFormData(prev => ({
+      ...prev,
+      [listName]: (Array.isArray(prev[listName]) ? prev[listName] : []).filter((_, i) => i !== index),
+    }));
+  };
+  
+  const handleLoadTestData = () => {
+    const testData = generatePreHospitalTestData();
+    const currentCardIdToUse = recordIdToEdit || formData?.cardId || generateClientSideId();
+
+    let newFormData = {
+      ...JSON.parse(JSON.stringify(INITIAL_PRE_HOSPITAL_FORM_DATA)),
+      ...testData,
+      cardId: currentCardIdToUse,
     };
-    const dynamicListItemStyle = {
-        p: 6, // Збільшено padding
-        borderWidth:"1px",
-        borderColor: mainBorderColor,
-        borderRadius:"xl", // Збільшено заокруглення
-        mb: 6, // Збільшено відступ
-        bg: contentBg, // Ефект "картки на панелі"
-        boxShadow:"lg" // Виразніша тінь
+    if (recordIdToEdit) newFormData._id = recordIdToEdit; else delete newFormData._id;
+    
+    // Ініціалізація кастомних станів
+    let tempBRC = ''; if (newFormData.breathingRate && !BREATHING_RATE_OPTIONS.find(o=>o.value===newFormData.breathingRate)) {tempBRC=newFormData.breathingRate; newFormData.breathingRate='custom';} setBreathingRateCustom(tempBRC);
+    let tempBSC = ''; if (newFormData.breathingSaturation && !OXYGEN_SATURATION_OPTIONS.find(o=>o.value===newFormData.breathingSaturation)) {tempBSC=newFormData.breathingSaturation; newFormData.breathingSaturation='custom';} setBreathingSaturationCustom(tempBSC);
+    let tempPRC = ''; if (newFormData.pulseRate && !PULSE_RATE_OPTIONS.find(o=>o.value===newFormData.pulseRate)) {tempPRC=newFormData.pulseRate; newFormData.pulseRate='custom';} setPulseRateCustom(tempPRC);
+    let tempBTC = ''; if (newFormData.bodyTemperature && !BODY_TEMPERATURE_OPTIONS.find(o=>o.value===newFormData.bodyTemperature)) {tempBTC=newFormData.bodyTemperature; newFormData.bodyTemperature='custom';} setBodyTemperatureCustom(tempBTC);
+    if (newFormData.sceneTypeValue && !SCENE_TYPE_OPTIONS.find(o=>o.value===newFormData.sceneTypeValue)) {newFormData.sceneTypeOther = newFormData.sceneTypeValue; newFormData.sceneTypeValue = 'other';} else if (newFormData.sceneTypeValue !== 'other') {newFormData.sceneTypeOther = '';}
+
+    newFormData.medicationsAdministered = (newFormData.medicationsAdministered || []).map(med => {
+        let fm = {...med};
+        if(med.name && !COMMON_PREHOSPITAL_MEDICATIONS.includes(med.name) && med.name!=='custom_entry'){fm.customName=med.name;fm.name='custom_entry';}else{fm.customName=med.customName||'';}
+        if(med.route && !MEDICATION_ROUTE_OPTIONS.find(o=>o.value===med.route) && med.route!=='custom_entry'){fm.customRoute=med.route;fm.route='custom_entry';}else{fm.customRoute=med.customRoute||'';}
+        return fm;
+    });
+    newFormData.proceduresPerformed = (newFormData.proceduresPerformed || []).map(proc => {
+        let fp = {...proc};
+        if(proc.name && !COMMON_PREHOSPITAL_PROCEDURES.includes(proc.name) && proc.name!=='custom_entry'){fp.customName=proc.name;fp.name='custom_entry';}else{fp.customName=proc.customName||'';}
+        return fp;
+    });
+    setFormData(newFormData);
+    toast({ title: "Тестові дані завантажено", status: "info", duration: 3000, isClosable: true, position: "top-right" });
+  };
+
+  const handleClearForm = () => {
+    setFormData(getInitialFormState(recordIdToEdit)); // Передаємо recordIdToEdit для коректного скидання ID
+    setBreathingRateCustom(''); setBreathingSaturationCustom(''); setPulseRateCustom(''); setBodyTemperatureCustom('');
+    toast({ title: "Форму очищено", status: "info", duration: 2000, isClosable: true, position: "top-right" });
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setIsSubmitting(true); // Початок відправки
+
+    const gcsValue = calculateGCS();
+    let finalFormData = JSON.parse(JSON.stringify(formData));
+
+    // Обробка кастомних значень
+    if (finalFormData.breathingRate === 'custom') finalFormData.breathingRate = breathingRateCustom || '';
+    if (finalFormData.breathingSaturation === 'custom') finalFormData.breathingSaturation = breathingSaturationCustom || '';
+    if (finalFormData.pulseRate === 'custom') finalFormData.pulseRate = pulseRateCustom || '';
+    if (finalFormData.bodyTemperature === 'custom') finalFormData.bodyTemperature = bodyTemperatureCustom || '';
+    
+    if (finalFormData.sceneTypeValue === 'other') {
+        finalFormData.sceneTypeValue = finalFormData.sceneTypeOther || 'Інше (не вказано)';
+    }
+    delete finalFormData.sceneTypeOther; // Видаляємо допоміжне поле
+
+    finalFormData.medicationsAdministered = (finalFormData.medicationsAdministered || [])
+      .map(med => ({
+        name: med.name === 'custom_entry' ? (med.customName || '') : med.name,
+        dosage: med.dosage || '',
+        route: med.route === 'custom_entry' ? (med.customRoute || '') : med.route,
+        time: med.time || '',
+        effectiveness: med.effectiveness || '',
+      })).filter(med => med.name && med.name.trim() !== ''); // Фільтруємо, якщо назва порожня
+
+    finalFormData.proceduresPerformed = (finalFormData.proceduresPerformed || [])
+      .map(proc => ({
+        name: proc.name === 'custom_entry' ? (proc.customName || '') : proc.name,
+        time: proc.time || '',
+        details: proc.details || '',
+        effectiveness: proc.effectiveness || '',
+      })).filter(proc => proc.name && proc.name.trim() !== '');
+    
+    if (finalFormData.medicationsAdministered.length === 0) finalFormData.medicationsAdministered = [];
+    if (finalFormData.proceduresPerformed.length === 0) finalFormData.proceduresPerformed = [];
+
+    const dataToSave = { 
+        ...finalFormData, 
+        cardId: cardDisplayId, // Використовуємо cardDisplayId, який є formData.cardId
+        gcsTotal: gcsValue,
+        rtsScore: finalFormData.rtsScore || 'Н/Д'
     };
 
-
-    if (isLoading) {
-        return (
-            <Flex justify="center" align="center" minHeight="calc(100vh - 150px)" bg={pageBg}>
-                <VStack spacing={4}>
-                    <Spinner size="xl" thickness="4px" speed="0.65s" emptyColor="gray.200" color={`${brandColorScheme}.500`} />
-                    <Text fontSize="xl" color={useColorModeValue("gray.600", "gray.300")}>Завантаження картки...</Text>
-                </VStack>
-            </Flex>
-        );
+    // Якщо це створення нової картки, _id не має бути в dataToSave
+    // recordIdToEdit - це _id існуючого запису
+    if (!recordIdToEdit && dataToSave.hasOwnProperty('_id')) {
+        delete dataToSave._id;
     }
     
-    const calculateGcsTotal = (gcsE, gcsV, gcsM) => {
-        const e = parseInt(gcsE, 10) || 0;
-        const v = parseInt(gcsV, 10) || 0;
-        const m = parseInt(gcsM, 10) || 0;
-        if (e === 0 && v === 0 && m === 0 && !gcsE && !gcsV && !gcsM) return '';
-        return e + v + m;
-    };
+    console.log("Дані для відправки на сервер:", JSON.stringify(dataToSave, null, 2));
 
+    try {
+      let response;
+      if (recordIdToEdit) { // Якщо є recordIdToEdit, значить ми оновлюємо існуючу картку
+        // Переконуємося, що dataToSave._id відповідає recordIdToEdit, якщо воно є
+        if (!dataToSave._id && recordIdToEdit) dataToSave._id = recordIdToEdit; 
+        response = await updateTraumaRecord(recordIdToEdit, dataToSave); // Передаємо MongoDB _id
+        toast({ 
+            title: "Картку успішно оновлено!", 
+            description: `ID картки: ${response.data?.record?.cardId || cardDisplayId}`,
+            status: "success", 
+            duration: 4000, 
+            isClosable: true,
+            position: "top-right"
+        });
+      } else { // Інакше створюємо нову картку
+        // Переконуємося, що cardId є, а _id немає
+        if (!dataToSave.cardId) dataToSave.cardId = generateClientSideId(); // На випадок, якщо cardDisplayId був порожній
+        delete dataToSave._id;
 
+        response = await createPreHospitalRecord(dataToSave);
+        toast({ 
+            title: "Картку успішно створено!", 
+            description: `ID картки: ${response.data?.record?.cardId || dataToSave.cardId}`,
+            status: "success", 
+            duration: 4000, 
+            isClosable: true,
+            position: "top-right"
+        });
+      }
+      
+      if (onSave) {
+        onSave(response.data.record); // Передаємо збережений/оновлений запис (з _id від сервера)
+      }
+
+    } catch (error) {
+      console.error("Помилка збереження/оновлення картки:", error.response?.data || error.message || error);
+      const errorMsg = error.response?.data?.message || 
+                       (error.response?.data?.errors ? error.response.data.errors.join(', ') : null) || 
+                       error.message || 
+                       "Невідома помилка сервера при збереженні картки.";
+      toast({ 
+        title: "Помилка збереження картки", 
+        description: errorMsg, 
+        status: "error", 
+        duration: 7000, 
+        isClosable: true,
+        position: "top-right"
+      });
+    } finally {
+      setIsSubmitting(false); // Завершення відправки
+    }
+  };
+  
+  const gcsTotalLocal = calculateGCS();
+  const isNotTransported = formData.transportationMethod === 'not_transported';
+  
+  const showCustomSubInput = (listName, index, fieldType) => {
+    if (!formData || !formData[listName] || !formData[listName][index]) return false;
+    if (fieldType === 'name') return formData[listName][index].name === 'custom_entry';
+    if (fieldType === 'route') return formData[listName][index].route === 'custom_entry';
+    return false;
+  };
+
+  if (isLoading && recordIdToEdit) { // Показуємо Spinner тільки при завантаженні для редагування
     return (
-        <Container maxW="container.2xl" py={{base: 6, md: 10}} px={{ base: 3, md: 6 }} bg={pageBg}> {/* Збільшено py */}
-             <VStack spacing={10} align="stretch"> {/* Збільшено основний spacing */}
-                <Flex
-                    direction={{ base: "column", md: "row" }}
-                    justifyContent="space-between"
-                    alignItems={{ base: "stretch", md: "center" }}
-                    gap={4}
-                    p={{base: 4, md: 6}}
-                    bg={contentBg}
-                    borderRadius="2xl" // Збільшено
-                    boxShadow="xl"
-                >
-                    <Heading as="h1" size="xl" color={mainHeadingColor} textAlign={{ base: "center", md: "left" }}>
-                        {isEditMode ? `Редагування Картки № ${formData.internalCardId || recordId}` : "Нова Догоспітальна Картка"}
-                    </Heading>
-                    <Button
-                        leftIcon={<ArrowBackIcon />}
-                        onClick={() => navigate('/trauma-journal')}
-                        variant="outline"
-                        colorScheme={neutralColorScheme}
-                        size="md" // Залишено md для меншої нав'язливості
-                        w={{base: "full", md: "auto"}}
-                    >
-                        До Журналу
-                    </Button>
-                </Flex>
-
-                {!isEditMode && formData.internalCardId && (
-                    <Tag size="lg" variant="solid" colorScheme={brandColorScheme} alignSelf="center" py={2} px={4} borderRadius="lg" boxShadow="md"> {/* borderRadius lg */}
-                        ID нової картки: <Text as="strong" ml={1.5}>{formData.internalCardId}</Text>
-                    </Tag>
-                )}
-
-                <Accordion allowMultiple defaultIndex={isEditMode ? undefined : [0]} width="100%">
-                    {/* --- 1. ІНЦИДЕНТ ТА ЧАС --- */}
-                    <AccordionItem sx={accordionItemBaseStyle}>
-                        <h2>
-                            <AccordionButton sx={accordionButtonBaseStyle(brandColorScheme)}>
-                                <HStack spacing={4}><Icon as={TimeIcon} boxSize={6}/> <Box>1. Інцидент та Час</Box></HStack> {/* Збільшено spacing, boxSize */}
-                                <AccordionIcon boxSize={7}/> {/* Збільшено boxSize */}
-                            </AccordionButton>
-                        </h2>
-                        <AccordionPanel pb={8} px={{base:4, md:6}} bg={subtlePaneBg}>
-                            <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6}>
-                                <FormControl isRequired>
-                                    <FormLabel sx={formLabelBaseStyle}>Дата та час інциденту</FormLabel>
-                                    <Input bg={inputBg} type="datetime-local" value={formData.incidentDateTime || ''} onChange={(e) => handleInputChange('incidentDateTime', e.target.value)} />
-                                </FormControl>
-                                <FormControl isRequired>
-                                    <FormLabel sx={formLabelBaseStyle}>Причина виклику / Тип інциденту</FormLabel>
-                                    <Input bg={inputBg} placeholder="Напр., ДТП, падіння, вибух" value={formData.reasonForCall || ''} onChange={(e) => handleInputChange('reasonForCall', e.target.value)} />
-                                </FormControl>
-                                <FormControl isRequired>
-                                    <FormLabel sx={formLabelBaseStyle}>Час прибуття на місце</FormLabel>
-                                    <InputGroup>
-                                        <Input bg={inputBg} type="datetime-local" value={formData.teamArrivalTimeScene || ''} onChange={(e) => handleInputChange('teamArrivalTimeScene', e.target.value)} />
-                                        <InputRightElement>
-                                            <Tooltip label="Поточний час" placement="top">
-                                                <IconButton icon={<TimeIcon />} size="sm" variant="ghost" onClick={() => handleInputChange('teamArrivalTimeScene', getCurrentDateTimeLocal())} aria-label="Встановити поточний час"/>
-                                            </Tooltip>
-                                        </InputRightElement>
-                                    </InputGroup>
-                                </FormControl>
-                                <FormControl>
-                                    <FormLabel sx={formLabelBaseStyle}>Час контакту з пацієнтом</FormLabel>
-                                     <InputGroup>
-                                        <Input bg={inputBg} type="datetime-local" value={formData.patientContactTime || ''} onChange={(e) => handleInputChange('patientContactTime', e.target.value)} />
-                                        <InputRightElement>
-                                             <Tooltip label="Поточний час" placement="top">
-                                                <IconButton icon={<TimeIcon />} size="sm" variant="ghost" onClick={() => handleInputChange('patientContactTime', getCurrentDateTimeLocal())} aria-label="Встановити поточний час"/>
-                                            </Tooltip>
-                                        </InputRightElement>
-                                    </InputGroup>
-                                </FormControl>
-                            </SimpleGrid>
-                        </AccordionPanel>
-                    </AccordionItem>
-
-                    {/* --- 2. ІНФОРМАЦІЯ ПРО ПАЦІЄНТА --- */}
-                    <AccordionItem sx={accordionItemBaseStyle}>
-                        <h2>
-                            <AccordionButton sx={accordionButtonBaseStyle(patientInfoColorScheme)}>
-                                <HStack spacing={4}><Icon as={QuestionOutlineIcon} boxSize={6}/> <Box>2. Інформація про Пацієнта</Box></HStack>
-                                <AccordionIcon boxSize={7}/>
-                            </AccordionButton>
-                        </h2>
-                        <AccordionPanel pb={8} px={{base:4, md:6}} bg={subtlePaneBg}>
-                            <Checkbox
-                                isChecked={formData.patientInfo?.isUnknown || false}
-                                onChange={(e) => handleInputChange('patientInfo.isUnknown', e.target.checked)}
-                                mb={6}
-                                colorScheme={patientInfoColorScheme} // Змінено colorScheme
-                                size="lg"
-                            >
-                                <Text fontSize="md" fontWeight="medium">Пацієнт невідомий</Text> {/* Додано fontWeight */}
-                                {formData.patientInfo?.isUnknown && formData.patientInfo?.tempPatientId &&
-                                    <Tag size="md" ml={3} colorScheme="orange" variant="outline" py={1} px={2} borderRadius="lg">ID: {formData.patientInfo.tempPatientId}</Tag>
-                                }
-                            </Checkbox>
-                            <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={6}>
-                                <FormControl isDisabled={formData.patientInfo?.isUnknown} isRequired={!formData.patientInfo?.isUnknown}>
-                                    <FormLabel sx={formLabelBaseStyle}>Прізвище</FormLabel>
-                                    <Input bg={inputBg} value={formData.patientInfo?.lastName || ''} onChange={(e) => handleInputChange('patientInfo.lastName', e.target.value)} />
-                                </FormControl>
-                                <FormControl isDisabled={formData.patientInfo?.isUnknown} isRequired={!formData.patientInfo?.isUnknown}>
-                                    <FormLabel sx={formLabelBaseStyle}>Ім'я</FormLabel>
-                                    <Input bg={inputBg} value={formData.patientInfo?.firstName || ''} onChange={(e) => handleInputChange('patientInfo.firstName', e.target.value)} />
-                                </FormControl>
-                                <FormControl isDisabled={formData.patientInfo?.isUnknown}>
-                                    <FormLabel sx={formLabelBaseStyle}>По батькові</FormLabel>
-                                    <Input bg={inputBg} value={formData.patientInfo?.middleName || ''} onChange={(e) => handleInputChange('patientInfo.middleName', e.target.value)} />
-                                </FormControl>
-                                <FormControl isDisabled={formData.patientInfo?.isUnknown}>
-                                    <FormLabel sx={formLabelBaseStyle}>Дата народження</FormLabel>
-                                    <Input bg={inputBg} type="date" value={formData.patientInfo?.dateOfBirth || ''} onChange={(e) => handleInputChange('patientInfo.dateOfBirth', e.target.value)} max={new Date().toISOString().split("T")[0]} />
-                                </FormControl>
-                                <FormControl> {/* Не isDisabled, бо орієнтовний вік можна вказати для невідомого */}
-                                    <FormLabel sx={formLabelBaseStyle}>
-                                        Орієнтовний вік (років)
-                                        {formData.patientInfo?.dateOfBirth && (
-                                            <Tooltip label="Розраховано автоматично на основі дати народження" placement="top" openDelay={300}>
-                                                <Icon as={QuestionOutlineIcon} ml={1.5} color="gray.500" boxSize={4}/>
-                                            </Tooltip>
-                                        )}
-                                    </FormLabel>
-                                    <Input bg={inputBg} type="number"
-                                        placeholder={calculatedAge ? "Авто" : "Введіть вік"}
-                                        value={calculatedAge || formData.patientInfo?.ageYears || ''}
-                                        onChange={(e) => handleInputChange('patientInfo.ageYears', e.target.value)}
-                                        isReadOnly={!!formData.patientInfo?.dateOfBirth}
-                                        // isDisabled={formData.patientInfo?.isUnknown && !formData.patientInfo?.dateOfBirth} - Закоментовано, щоб можна було вводити для невідомого
-                                    />
-                                </FormControl>
-                                <FormControl isDisabled={formData.patientInfo?.isUnknown} isRequired={!formData.patientInfo?.isUnknown}>
-                                    <FormLabel sx={formLabelBaseStyle}>Стать</FormLabel>
-                                    <Select bg={inputBg} placeholder="Оберіть стать" value={formData.patientInfo?.gender || ''} onChange={(e) => handleInputChange('patientInfo.gender', e.target.value)}>
-                                        {constants.genders.map(gender => <option key={gender} value={gender}>{gender}</option>)}
-                                    </Select>
-                                </FormControl>
-                                <FormControl isDisabled={formData.patientInfo?.isUnknown}>
-                                    <FormLabel sx={formLabelBaseStyle}>Контактний телефон</FormLabel>
-                                    <Input bg={inputBg} value={formData.patientInfo?.contactPhone || ''} onChange={(e) => handleInputChange('patientInfo.contactPhone', e.target.value)} placeholder="Пацієнта або родичів"/>
-                                </FormControl>
-                                <FormControl gridColumn={{ base: "span 1", md: "span 2" }} isDisabled={formData.patientInfo?.isUnknown}>
-                                    <FormLabel sx={formLabelBaseStyle}>Орієнтовна адреса / Звідки</FormLabel>
-                                    <Input bg={inputBg} value={formData.patientInfo?.addressRough || ''} onChange={(e) => handleInputChange('patientInfo.addressRough', e.target.value)} placeholder="Якщо відомо"/>
-                                </FormControl>
-                            </SimpleGrid>
-                            <VStack spacing={5} mt={8} align="stretch"> {/* Збільшено spacing */}
-                                <Textarea bg={inputBg} placeholder="Коротко: алергії (якщо є критичні)..." value={formData.patientInfo?.allergiesShort || ''} onChange={(e) => handleInputChange('patientInfo.allergiesShort', e.target.value)} />
-                                <Textarea bg={inputBg} placeholder="Коротко: постійний прийом важливих ліків..." value={formData.patientInfo?.medicationsShort || ''} onChange={(e) => handleInputChange('patientInfo.medicationsShort', e.target.value)} />
-                                <Textarea bg={inputBg} placeholder="Коротко: супутні захворювання (діабет, серцеві, епілепсія тощо)..." value={formData.patientInfo?.medicalHistoryShort || ''} onChange={(e) => handleInputChange('patientInfo.medicalHistoryShort', e.target.value)} />
-                            </VStack>
-                        </AccordionPanel>
-                    </AccordionItem>
-
-                    {/* --- 3. СКАРГИ, ТРІАЖ, MARCH --- */}
-                    <AccordionItem sx={accordionItemBaseStyle}>
-                        <h2>
-                            <AccordionButton sx={accordionButtonBaseStyle(brandColorScheme)}>
-                                 <HStack spacing={4}><Icon as={AddIcon} transform="rotate(45deg)" boxSize={6}/> <Box>3. Скарги, Тріаж та Огляд (MARCH)</Box></HStack>
-                                <AccordionIcon boxSize={7}/>
-                            </AccordionButton>
-                        </h2>
-                        <AccordionPanel pb={8} px={{base:4, md:6}} bg={subtlePaneBg}>
-                            <FormControl mb={6}>
-                                <FormLabel sx={formLabelBaseStyle}>Скарги пацієнта / Свідків</FormLabel>
-                                <Textarea bg={inputBg} placeholder="Опишіть основні скарги..." value={formData.complaints || ''} onChange={(e) => handleInputChange('complaints', e.target.value)} />
-                            </FormControl>
-                            <Divider my={8} borderColor={mainBorderColor}/>
-                            <Heading size="lg" mb={6} color={sectionTitleColor(brandColorScheme)} fontWeight="semibold">Тріаж</Heading> {/* fontWeight semibold, mb 6 */}
-                            <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6} mb={8}>
-                                <FormControl isRequired>
-                                    <FormLabel sx={formLabelBaseStyle}>Категорія тріажу</FormLabel>
-                                    <Select bg={inputBg} placeholder="Оберіть категорію" value={formData.triageCategory || ''} onChange={(e) => handleInputChange('triageCategory', e.target.value)}>
-                                        {constants.triageCategories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
-                                    </Select>
-                                </FormControl>
-                                <FormControl>
-                                    <FormLabel sx={formLabelBaseStyle}>Час тріажу (HH:mm)</FormLabel>
-                                    <InputGroup>
-                                        <Input bg={inputBg} type="time" value={formData.triageTimestamp || ''} onChange={(e) => handleInputChange('triageTimestamp', e.target.value)} />
-                                         <InputRightElement>
-                                            <Tooltip label="Поточний час" placement="top"><IconButton icon={<TimeIcon />} size="sm" variant="ghost" onClick={() => handleInputChange('triageTimestamp', getCurrentTime())} aria-label="Встановити поточний час"/></Tooltip>
-                                        </InputRightElement>
-                                    </InputGroup>
-                                </FormControl>
-                            </SimpleGrid>
-                            <Divider my={8} borderColor={mainBorderColor}/>
-                            <Heading size="lg" mb={6} color={sectionTitleColor(brandColorScheme)} fontWeight="semibold">Огляд за MARCH</Heading> {/* fontWeight semibold, mb 6 */}
-                            <VStack spacing={5} align="stretch">
-                                {Object.entries(constants.marchSurveyFields).map(([key, label]) => (
-                                     <FormControl key={key} isRequired={constants.marchRequiredFields.includes(key)}>
-                                        <FormLabel sx={formLabelBaseStyle}>{label}</FormLabel>
-                                        {key === 'airwayManagement' ? (
-                                            <Select bg={inputBg} placeholder="Оберіть метод або опишіть" value={formData.marchSurvey?.[key] || ''} onChange={(e) => handleInputChange(`marchSurvey.${key}`, e.target.value)}>
-                                                {constants.airwayManagementOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                                                <option value="Інше (описати нижче)">Інше (описати в нотатках MARCH)</option>
-                                            </Select>
-                                        ) : (
-                                            <Textarea bg={inputBg} placeholder={constants.marchPlaceholders[key] || "Опис..."} value={formData.marchSurvey?.[key] || ''} onChange={(e) => handleInputChange(`marchSurvey.${key}`, e.target.value)} />
-                                        )}
-                                    </FormControl>
-                                ))}
-                            </VStack>
-                        </AccordionPanel>
-                    </AccordionItem>
-
-                    {/* --- 4. ЖИТТЄВІ ПОКАЗНИКИ --- */}
-                    <AccordionItem sx={accordionItemBaseStyle}>
-                        <h2>
-                            <AccordionButton sx={accordionButtonBaseStyle(patientInfoColorScheme)}>
-                                <HStack spacing={4}><Icon as={TimeIcon} boxSize={6}/> <Box>4. Життєві Показники</Box></HStack>
-                                <AccordionIcon boxSize={7}/>
-                            </AccordionButton>
-                        </h2>
-                        <AccordionPanel pb={6} px={{base:4, md:6}} bg={subtlePaneBg}>
-                            {(formData.vitalSignsLog || []).map((vs, index) => (
-                                <Box key={index} sx={dynamicListItemStyle}>
-                                    <Flex justifyContent="space-between" alignItems="center" mb={5}> {/* mb 5 */}
-                                        <Text fontWeight="semibold" fontSize="lg" color={sectionTitleColor(patientInfoColorScheme)}>Замір #{index + 1}</Text> {/* fontSize lg */}
-                                        <IconButton icon={<DeleteIcon />} size="md" variant="ghost" colorScheme="red" onClick={() => removeFromArray('vitalSignsLog', index)} aria-label="Видалити замір" /> {/* size md */}
-                                    </Flex>
-                                    <SimpleGrid columns={{ base: 2, sm: 3, md: 4, lg:6 }} spacingX={5} spacingY={4}>
-                                        <FormControl isRequired><FormLabel sx={formLabelBaseStyle}>Час</FormLabel><Input bg={inputBg} type="time" value={vs.timestamp || ''} onChange={(e) => updateInArray('vitalSignsLog', index, 'timestamp', e.target.value)} /></FormControl>
-                                        <FormControl><FormLabel sx={formLabelBaseStyle}>АТ сист.</FormLabel><Input bg={inputBg} type="number" placeholder="мм.рт.ст" value={vs.sbp || ''} onChange={(e) => updateInArray('vitalSignsLog', index, 'sbp', e.target.value)} /></FormControl>
-                                        <FormControl><FormLabel sx={formLabelBaseStyle}>АТ діаст.</FormLabel><Input bg={inputBg} type="number" placeholder="мм.рт.ст" value={vs.dbp || ''} onChange={(e) => updateInArray('vitalSignsLog', index, 'dbp', e.target.value)} /></FormControl>
-                                        <FormControl><FormLabel sx={formLabelBaseStyle}>ЧСС</FormLabel><Input bg={inputBg} type="number" placeholder="уд/хв" value={vs.hr || ''} onChange={(e) => updateInArray('vitalSignsLog', index, 'hr', e.target.value)} /></FormControl>
-                                        <FormControl><FormLabel sx={formLabelBaseStyle}>ЧД</FormLabel><Input bg={inputBg} type="number" placeholder="в хв" value={vs.rr || ''} onChange={(e) => updateInArray('vitalSignsLog', index, 'rr', e.target.value)} /></FormControl>
-                                        <FormControl><FormLabel sx={formLabelBaseStyle}>SpO2</FormLabel><InputGroup><Input bg={inputBg} type="number" placeholder="%" value={vs.spo2 || ''} onChange={(e) => updateInArray('vitalSignsLog', index, 'spo2', e.target.value)} /></InputGroup></FormControl>
-                                        <FormControl><FormLabel sx={formLabelBaseStyle}>ШКГ (E)</FormLabel><Input bg={inputBg} type="number" min="1" max="4" value={vs.gcsE || ''} onChange={(e) => updateInArray('vitalSignsLog', index, 'gcsE', e.target.value)} /></FormControl>
-                                        <FormControl><FormLabel sx={formLabelBaseStyle}>ШКГ (V)</FormLabel><Input bg={inputBg} type="number" min="1" max="5" value={vs.gcsV || ''} onChange={(e) => updateInArray('vitalSignsLog', index, 'gcsV', e.target.value)} /></FormControl>
-                                        <FormControl><FormLabel sx={formLabelBaseStyle}>ШКГ (M)</FormLabel><Input bg={inputBg} type="number" min="1" max="6" value={vs.gcsM || ''} onChange={(e) => updateInArray('vitalSignsLog', index, 'gcsM', e.target.value)} /></FormControl>
-                                        <FormControl>
-                                            <FormLabel sx={formLabelBaseStyle}>ШКГ (Заг)</FormLabel>
-                                            <Input bg={useColorModeValue("gray.100", "gray.600")} type="number" value={calculateGcsTotal(vs.gcsE, vs.gcsV, vs.gcsM)} isReadOnly placeholder="Авто" />
-                                        </FormControl>
-                                        <FormControl><FormLabel sx={formLabelBaseStyle}>t°C</FormLabel><Input bg={inputBg} type="number" step="0.1" placeholder="°C" value={vs.tempC || ''} onChange={(e) => updateInArray('vitalSignsLog', index, 'tempC', e.target.value)} /></FormControl>
-                                        <FormControl><FormLabel sx={formLabelBaseStyle}>Біль (0-10)</FormLabel><Input bg={inputBg} type="number" min="0" max="10" value={vs.painScore || ''} onChange={(e) => updateInArray('vitalSignsLog', index, 'painScore', e.target.value)} /></FormControl>
-                                    </SimpleGrid>
-                                </Box>
-                            ))}
-                            <Button mt={6} size="md" variant="outline" colorScheme={patientInfoColorScheme} onClick={() => addToArray('vitalSignsLog', constants.vitalSignTemplate)} leftIcon={<AddIcon />}>Додати замір</Button>
-                        </AccordionPanel>
-                    </AccordionItem>
-
-                    {/* --- 5. ВИЯВЛЕНІ УШКОДЖЕННЯ --- */}
-                    <AccordionItem sx={accordionItemBaseStyle}>
-                        <h2>
-                            <AccordionButton sx={accordionButtonBaseStyle(injuriesColorScheme)}>
-                                <HStack spacing={4}><Icon as={WarningTwoIcon} boxSize={6}/> <Box>5. Виявлені Ушкодження</Box></HStack>
-                                <AccordionIcon boxSize={7}/>
-                            </AccordionButton>
-                        </h2>
-                        <AccordionPanel pb={6} px={{base:4, md:6}} bg={subtlePaneBg}>
-                             {(formData.suspectedInjuries || []).map((injury, index) => (
-                                <Box key={index} sx={dynamicListItemStyle}>
-                                    <Flex justifyContent="space-between" alignItems="center" mb={5}>
-                                        <Text fontWeight="semibold" fontSize="lg" color={sectionTitleColor(injuriesColorScheme)}>Ушкодження #{index + 1}</Text>
-                                        <IconButton icon={<DeleteIcon />} size="md" variant="ghost" colorScheme="red" onClick={() => removeFromArray('suspectedInjuries', index)} aria-label="Видалити ушкодження" />
-                                    </Flex>
-                                    <SimpleGrid columns={{ base: 1, md: 2 }} spacing={5}>
-                                        <FormControl isRequired><FormLabel sx={formLabelBaseStyle}>Частина тіла</FormLabel>
-                                            <Select bg={inputBg} placeholder="Оберіть" value={injury.bodyPart || ''} onChange={(e) => updateInArray('suspectedInjuries', index, 'bodyPart', e.target.value)}>
-                                                {constants.bodyParts.map(part => <option key={part} value={part}>{part}</option>)}
-                                            </Select>
-                                        </FormControl>
-                                        <FormControl isRequired><FormLabel sx={formLabelBaseStyle}>Тип ушкодження</FormLabel>
-                                            <Select bg={inputBg} placeholder="Оберіть" value={injury.typeOfInjury || ''} onChange={(e) => updateInArray('suspectedInjuries', index, 'typeOfInjury', e.target.value)}>
-                                                {constants.injuryTypes.map(type => <option key={type} value={type}>{type}</option>)}
-                                            </Select>
-                                        </FormControl>
-                                    </SimpleGrid>
-                                    <FormControl mt={4}><FormLabel sx={formLabelBaseStyle}>Детальний опис</FormLabel><Textarea bg={inputBg} value={injury.description || ''} onChange={(e) => updateInArray('suspectedInjuries', index, 'description', e.target.value)} placeholder="Розмір, глибина, наявність кровотечі, деформація..." /></FormControl>
-                                </Box>
-                            ))}
-                            <Button mt={6} size="md" variant="outline" colorScheme={injuriesColorScheme} onClick={() => addToArray('suspectedInjuries', constants.injuryTemplate)} leftIcon={<AddIcon />}>Додати ушкодження</Button>
-                        </AccordionPanel>
-                    </AccordionItem>
-
-                    {/* --- 6. ПРОВЕДЕНІ ВТРУЧАННЯ --- */}
-                     <AccordionItem sx={accordionItemBaseStyle}>
-                        <h2>
-                            <AccordionButton sx={accordionButtonBaseStyle(interventionsColorScheme)}>
-                                 <HStack spacing={4}><Icon as={CheckCircleIcon} boxSize={6}/> <Box>6. Проведені Втручання</Box></HStack>
-                                <AccordionIcon boxSize={7}/>
-                            </AccordionButton>
-                        </h2>
-                        <AccordionPanel pb={6} px={{base:4, md:6}} bg={subtlePaneBg}>
-                            {(formData.interventionsPerformed || []).map((intervention, index) => (
-                                <Box key={index} sx={dynamicListItemStyle}>
-                                    <Flex justifyContent="space-between" alignItems="center" mb={5}>
-                                        <Text fontWeight="semibold" fontSize="lg" color={sectionTitleColor(interventionsColorScheme)}>Втручання #{index + 1}</Text>
-                                        <IconButton icon={<DeleteIcon />} size="md" variant="ghost" colorScheme="red" onClick={() => removeFromArray('interventionsPerformed', index)} aria-label="Видалити втручання" />
-                                    </Flex>
-                                    <SimpleGrid columns={{ base: 1, md: 2 }} spacing={5}>
-                                        <FormControl isRequired><FormLabel sx={formLabelBaseStyle}>Тип втручання</FormLabel>
-                                            <Select bg={inputBg} placeholder="Оберіть" value={intervention.type || ''} onChange={(e) => updateInArray('interventionsPerformed', index, 'type', e.target.value)}>
-                                                {constants.interventionTypes.map(type => <option key={type} value={type}>{type}</option>)}
-                                            </Select>
-                                        </FormControl>
-                                        <FormControl isRequired><FormLabel sx={formLabelBaseStyle}>Час (HH:mm)</FormLabel>
-                                            <InputGroup>
-                                                <Input bg={inputBg} type="time" value={intervention.timestamp || ''} onChange={(e) => updateInArray('interventionsPerformed', index, 'timestamp', e.target.value)} />
-                                                <InputRightElement><Tooltip label="Поточний час" placement="top"><IconButton icon={<TimeIcon />} size="sm" variant="ghost" onClick={() => updateInArray('interventionsPerformed', index, 'timestamp', getCurrentTime())} aria-label="Встановити поточний час"/></Tooltip></InputRightElement>
-                                            </InputGroup>
-                                        </FormControl>
-                                    </SimpleGrid>
-                                    <FormControl mt={4}><FormLabel sx={formLabelBaseStyle}>Деталі / Результат</FormLabel><Textarea bg={inputBg} value={intervention.details || ''} onChange={(e) => updateInArray('interventionsPerformed', index, 'details', e.target.value)} placeholder="Напр., Джгут САТ на праве стегно, кровотеча зупинена. NaCl 0.9% 500 мл в/в." /></FormControl>
-                                </Box>
-                            ))}
-                            <Button mt={6} size="md" variant="outline" colorScheme={interventionsColorScheme} onClick={() => addToArray('interventionsPerformed', constants.interventionTemplate)} leftIcon={<AddIcon />}>Додати втручання</Button>
-                        </AccordionPanel>
-                    </AccordionItem>
-
-                    {/* --- 7. ВВЕДЕНІ МЕДИКАМЕНТИ --- */}
-                    <AccordionItem sx={accordionItemBaseStyle}>
-                         <h2>
-                            <AccordionButton sx={accordionButtonBaseStyle(medicationsColorScheme)}>
-                                 <HStack spacing={4}><Icon as={ChatIcon} boxSize={6}/> <Box>7. Введені Медикаменти</Box></HStack>
-                                <AccordionIcon boxSize={7}/>
-                            </AccordionButton>
-                        </h2>
-                        <AccordionPanel pb={6} px={{base:4, md:6}} bg={subtlePaneBg}>
-                            {(formData.medicationsAdministered || []).map((med, index) => (
-                                <Box key={index} sx={dynamicListItemStyle}>
-                                    <Flex justifyContent="space-between" alignItems="center" mb={5}>
-                                        <Text fontWeight="semibold" fontSize="lg" color={sectionTitleColor(medicationsColorScheme)}>Медикамент #{index + 1}</Text>
-                                        <IconButton icon={<DeleteIcon />} size="md" variant="ghost" colorScheme="red" onClick={() => removeFromArray('medicationsAdministered', index)} aria-label="Видалити медикамент" />
-                                    </Flex>
-                                    <SimpleGrid columns={{ base: 1, sm: 2, md: 3, lg:5 }} spacing={5} alignItems="flex-end">
-                                        <FormControl gridColumn={{base: "span 1", sm: "span 2", md: "span 1"}} isRequired><FormLabel sx={formLabelBaseStyle}>Назва</FormLabel><Input bg={inputBg} value={med.name || ''} onChange={(e) => updateInArray('medicationsAdministered', index, 'name', e.target.value)} /></FormControl>
-                                        <FormControl isRequired><FormLabel sx={formLabelBaseStyle}>Доза</FormLabel><Input bg={inputBg} type="text" value={med.dose || ''} onChange={(e) => updateInArray('medicationsAdministered', index, 'dose', e.target.value)} /></FormControl>
-                                        <FormControl isRequired><FormLabel sx={formLabelBaseStyle}>Од.</FormLabel>
-                                            <Select bg={inputBg} value={med.unit || ''} onChange={(e) => updateInArray('medicationsAdministered', index, 'unit', e.target.value)}>
-                                                {constants.medicationUnits.map(u => <option key={u} value={u}>{u}</option>)}
-                                            </Select>
-                                        </FormControl>
-                                        <FormControl isRequired><FormLabel sx={formLabelBaseStyle}>Шлях</FormLabel>
-                                            <Select bg={inputBg} value={med.route || ''} onChange={(e) => updateInArray('medicationsAdministered', index, 'route', e.target.value)}>
-                                                {constants.medicationRoutes.map(r => <option key={r} value={r}>{r}</option>)}
-                                            </Select>
-                                        </FormControl>
-                                        <FormControl isRequired><FormLabel sx={formLabelBaseStyle}>Час</FormLabel>
-                                            <InputGroup>
-                                                <Input bg={inputBg} type="time" value={med.timestamp || ''} onChange={(e) => updateInArray('medicationsAdministered', index, 'timestamp', e.target.value)} />
-                                                <InputRightElement><Tooltip label="Поточний час" placement="top"><IconButton icon={<TimeIcon />} size="sm" variant="ghost" onClick={() => updateInArray('medicationsAdministered', index, 'timestamp', getCurrentTime())} aria-label="Встановити поточний час"/></Tooltip></InputRightElement>
-                                            </InputGroup>
-                                        </FormControl>
-                                    </SimpleGrid>
-                                </Box>
-                            ))}
-                            <Button mt={6} size="md" variant="outline" colorScheme={medicationsColorScheme} onClick={() => addToArray('medicationsAdministered', constants.medicationTemplate)} leftIcon={<AddIcon />}>Додати медикамент</Button>
-                        </AccordionPanel>
-                    </AccordionItem>
-
-                    {/* --- 8. ТРАНСПОРТУВАННЯ, РЕЗУЛЬТАТ, НОТАТКИ --- */}
-                    <AccordionItem sx={accordionItemBaseStyle}>
-                        <h2>
-                             <AccordionButton sx={accordionButtonBaseStyle(transportColorScheme)}>
-                                 <HStack spacing={4}><Icon as={ArrowForwardIcon} boxSize={6}/> <Box>8. Транспортування, Результат та Нотатки</Box></HStack>
-                                <AccordionIcon boxSize={7}/>
-                            </AccordionButton>
-                        </h2>
-                        <AccordionPanel pb={8} px={{base:4, md:6}} bg={subtlePaneBg}>
-                             <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6}>
-                                <FormControl><FormLabel sx={formLabelBaseStyle}>ЗОЗ призначення</FormLabel><Input bg={inputBg} value={formData.transportation?.destinationFacilityName || ''} onChange={(e) => handleInputChange('transportation.destinationFacilityName', e.target.value)} placeholder="Назва лікарні"/></FormControl>
-                                <FormControl><FormLabel sx={formLabelBaseStyle}>Транспорт</FormLabel>
-                                    <Select bg={inputBg} placeholder="Оберіть" value={formData.transportation?.transportMode || ''} onChange={(e) => handleInputChange('transportation.transportMode', e.target.value)}>
-                                        {constants.transportModes.map(mode => <option key={mode} value={mode}>{mode}</option>)}
-                                    </Select>
-                                </FormControl>
-                                <FormControl><FormLabel sx={formLabelBaseStyle}>Час виїзду з місця</FormLabel>
-                                     <InputGroup>
-                                        <Input bg={inputBg} type="datetime-local" value={formData.transportation?.departureTimeFromScene || ''} onChange={(e) => handleInputChange('transportation.departureTimeFromScene', e.target.value)} />
-                                        <InputRightElement><Tooltip label="Поточний час" placement="top"><IconButton icon={<TimeIcon />} size="sm" variant="ghost" onClick={() => handleInputChange('transportation.departureTimeFromScene', getCurrentDateTimeLocal())} aria-label="Встановити поточний час"/></Tooltip></InputRightElement>
-                                    </InputGroup>
-                                </FormControl>
-                                <FormControl isRequired><FormLabel sx={formLabelBaseStyle}>Результат на догоспітальному етапі</FormLabel>
-                                    <Select bg={inputBg} placeholder="Оберіть" value={formData.outcomePreHospital || ''} onChange={(e) => handleInputChange('outcomePreHospital', e.target.value)}>
-                                        {constants.patientOutcomePreHospital.map(outcome => <option key={outcome} value={outcome}>{outcome}</option>)}
-                                    </Select>
-                                </FormControl>
-                            </SimpleGrid>
-                            <FormControl mt={6}>
-                                <FormLabel sx={formLabelBaseStyle}>Стан пацієнта під час транспортування</FormLabel>
-                                <Textarea bg={inputBg} value={formData.transportation?.patientConditionDuringTransport || ''} onChange={(e) => handleInputChange('transportation.patientConditionDuringTransport', e.target.value)} placeholder="Стабільний, погіршення, покращення, СЛР в дорозі..."/>
-                            </FormControl>
-                             <FormControl mt={6}> {/* mt 6 */}
-                                <FormLabel sx={formLabelBaseStyle}>Загальні нотатки по етапу</FormLabel>
-                                <Textarea bg={inputBg} value={formData.notes || ''} onChange={(e) => handleInputChange('notes', e.target.value)} placeholder="Будь-яка додаткова важлива інформація..."/>
-                            </FormControl>
-                        </AccordionPanel>
-                    </AccordionItem>
-                </Accordion>
-
-
-                <Divider my={10} borderColor={mainBorderColor} />
-
-               <Flex
-                    justifyContent={{base: "stretch", sm: "flex-end"}}
-                    direction={{base: "column-reverse", sm: "row"}}
-                    gap={4}
-                    p={{base: 4, md: 6}}
-                    bg={contentBg}
-                    borderRadius="2xl" // Збільшено
-                    boxShadow="xl"    // Збільшено
-                >
-                    {!isEditMode && <Button onClick={handleFillTestData} colorScheme={highlightColorScheme} variant="outline" isDisabled={isSubmitting} size="lg" w={{base: "full", sm: "auto"}}>Тестові дані</Button>}
-                    <Button onClick={() => handleClear()} colorScheme={neutralColorScheme} variant="outline" isDisabled={isSubmitting} size="lg" w={{base: "full", sm: "auto"}}>
-                        {isEditMode ? "Скасувати зміни" : "Очистити форму"}
-                    </Button>
-                    <Button
-                        onClick={handleSave}
-                        colorScheme={brandColorScheme}
-                        isLoading={isSubmitting}
-                        loadingText={isEditMode ? "Оновлення..." : "Збереження..."}
-                        size="lg"
-                        px={isEditMode ? 8 : 10}
-                        w={{base: "full", sm: "auto"}}
-                        _hover={{ bg: useColorModeValue(`${brandColorScheme}.700`, `${brandColorScheme}.400`)}} // Трохи темніший/світліший hover
-                    >
-                        {isEditMode ? "Оновити Картку" : "Зберегти Картку"}
-                    </Button>
-                </Flex>
-            </VStack>
-        </Container>
+      <Flex justify="center" align="center" height="400px">
+        <Spinner thickness="4px" speed="0.65s" emptyColor="gray.200" color="teal.500" size="xl" />
+        <Text ml={4} fontSize="lg">Завантаження даних картки...</Text>
+      </Flex>
     );
-}
+  }
+
+  // JSX рендеринг
+  return (
+     <Box {...mainBoxStyles}>
+      <Flex {...headerFlexStyles}>
+        <Heading {...headerTitleStyles}>Первинна Картка (Травма)</Heading>
+        <Text {...cardIdTextStyles}>#{cardDisplayId}</Text>
+        <Spacer />
+        <Button colorScheme="gray" variant="outline" onClick={handleClearForm} mr={3} {...secondaryButtonStyles} _hover={{bg: "gray.100", borderColor: "gray.400"}} isDisabled={isSubmitting}>
+          Очистити
+        </Button>
+        <Button colorScheme="yellow" variant="solid" onClick={handleLoadTestData} {...secondaryButtonStyles} _hover={{bg: "yellow.500"}} isDisabled={isSubmitting}>
+          Тестові Дані
+        </Button>
+      </Flex>
+
+      <form onSubmit={handleSubmit}>
+        <VStack spacing={5} align="stretch">
+          
+          <Accordion allowMultiple defaultIndex={[0]} borderWidth="0px"> {/* defaultIndex тепер масив */}
+            <AccordionItem {...accordionItemStyles}>
+              <h2><AccordionButton {...accordionButtonStyles}><Box {...accordionButtonTextStyles}>1. Загальна інформація, пацієнт, місце події</Box><AccordionIcon /></AccordionButton></h2>
+              <AccordionPanel {...accordionPanelStyles}>
+                <Grid templateColumns={{ base: "1fr", md: "repeat(2, 1fr)", lg: "repeat(3, 1fr)" }} gap={5}>
+                  <FormControl isRequired><FormLabel {...formControlLabelStyles}>Дата та час події/виявлення</FormLabel><Input type="datetime-local" name="incidentDateTime" value={formData.incidentDateTime || ''} onChange={handleChange} {...inputStyles}/></FormControl>
+                  <FormControl isRequired><FormLabel {...formControlLabelStyles}>Дата та час прибуття на місце</FormLabel><Input type="datetime-local" name="arrivalDateTime" value={formData.arrivalDateTime || ''} onChange={handleChange} {...inputStyles}/></FormControl>
+                  <FormControl><FormLabel {...formControlLabelStyles}>Тип місця події</FormLabel><Select placeholder="Оберіть тип" name="sceneTypeValue" value={formData.sceneTypeValue || ''} onChange={handleChange} {...inputStyles}>{SCENE_TYPE_OPTIONS.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}</Select>{formData.sceneTypeValue === 'other' && (<Input mt={2} name="sceneTypeOther" value={formData.sceneTypeOther || ''} onChange={handleChange} placeholder="Вкажіть інший тип" {...inputStyles}/>)}</FormControl>
+                  <GridItem colSpan={{ base: 1, md: 2, lg: 1 }}><FormControl><FormLabel {...formControlLabelStyles}>ПІБ Пацієнта</FormLabel><Input placeholder="Прізвище Ім'я По-батькові або 'Невідомо(а)'" name="patientFullName" value={formData.patientFullName || ''} onChange={handleChange} {...inputStyles}/></FormControl></GridItem>
+                  <FormControl><FormLabel {...formControlLabelStyles}>Стать</FormLabel><Select placeholder="Оберіть стать" name="patientGender" value={formData.patientGender || ''} onChange={handleChange} {...inputStyles}>{GENDER_OPTIONS.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}</Select></FormControl>
+                  <FormControl><FormLabel {...formControlLabelStyles}>Дата народження</FormLabel><Input type="date" name="patientDateOfBirth" value={formData.patientDateOfBirth || ''} onChange={handleChange} isDisabled={isPatientFullNameUnknown} {...inputStyles}/></FormControl>
+                  <FormControl><FormLabel {...formControlLabelStyles}>Орієнтовний вік</FormLabel><NumberInput min={0} max={130} name="patientApproximateAge" value={formData.patientApproximateAge || ''} isDisabled={!isPatientFullNameUnknown && !!formData.patientDateOfBirth} onChange={(valStr, valNum) => handleNumericChange('patientApproximateAge', valStr, valNum )} precision={0}><NumberInputField placeholder={isPatientFullNameUnknown ? "Введіть вік" : (formData.patientDateOfBirth ? "Вказано дату" : "Років")} {...inputStyles}/><NumberInputStepper><NumberIncrementStepper /><NumberDecrementStepper /></NumberInputStepper></NumberInput></FormControl>
+                  <GridItem colSpan={{base:1, md:2, lg:3}}><FormControl><FormLabel fontWeight="bold" color="red.500" mb="0.5">Контроль катастрофічної кровотечі (C)</FormLabel><Checkbox name="catastrophicHemorrhageControlled" isChecked={!!formData.catastrophicHemorrhageControlled} onChange={handleChange} colorScheme="red" size="lg">Критичну кровотечу виявлено та контрольовано (або відсутня)</Checkbox>{(formData.catastrophicHemorrhageControlled) && (<Textarea mt={2} name="catastrophicHemorrhageDetails" value={formData.catastrophicHemorrhageDetails || ''} onChange={handleChange} placeholder="Деталі: локалізація, метод контролю..." {...inputStyles}/>)}</FormControl></GridItem>
+                </Grid>
+              </AccordionPanel>
+            </AccordionItem>
+
+            <AccordionItem {...accordionItemStyles}>
+                <h2><AccordionButton {...accordionButtonStyles}><Box {...accordionButtonTextStyles}>2. Оцінка стану (ABCDE)</Box><AccordionIcon /></AccordionButton></h2>
+                <AccordionPanel {...accordionPanelStyles}>
+                    <VStack spacing={5} align="stretch">
+                        <Box><Heading size="md" color="gray.700" mb={2}>A: Дихальні шляхи</Heading><FormControl><FormLabel {...formControlLabelStyles}>Стан</FormLabel><Select placeholder="Оберіть статус" name="airwayStatus" value={formData.airwayStatus||''} onChange={handleChange} {...inputStyles}>{AIRWAY_STATUS_OPTIONS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}</Select></FormControl></Box>
+                        <Divider borderColor="gray.300"/>
+                        <Box><Heading size="md" color="gray.700" mb={2}>B: Дихання</Heading><SimpleGrid columns={{ base: 1, md: 2, lg:3 }} spacing={4}>
+                            <FormControl><FormLabel {...formControlLabelStyles}>ЧД (в хв.)</FormLabel><Select name="breathingRate" value={formData.breathingRate||''} onChange={handleChange} {...inputStyles}><option value="">Оберіть</option>{BREATHING_RATE_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}</Select>{formData.breathingRate === 'custom' && <Input mt={2} type="number" value={breathingRateCustom||''} placeholder="Введіть ЧД" onChange={(e) => setBreathingRateCustom(e.target.value)} {...inputStyles}/>}</FormControl>
+                            <FormControl><FormLabel {...formControlLabelStyles}>SpO2 (%)</FormLabel><Select name="breathingSaturation" value={formData.breathingSaturation||''} onChange={handleChange} {...inputStyles}><option value="">Оберіть</option>{OXYGEN_SATURATION_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}</Select>{formData.breathingSaturation === 'custom' && <Input mt={2} type="number" value={breathingSaturationCustom||''} placeholder="Введіть SpO2" onChange={(e) => setBreathingSaturationCustom(e.target.value)} {...inputStyles}/>}</FormControl>
+                            <FormControl><FormLabel {...formControlLabelStyles}>Характер</FormLabel><Select placeholder="Оберіть" name="breathingQuality" value={formData.breathingQuality||''} onChange={handleChange} {...inputStyles}>{BREATHING_QUALITY_OPTIONS.map(q => <option key={q.value} value={q.value}>{q.label}</option>)}</Select></FormControl>
+                            <FormControl><FormLabel {...formControlLabelStyles}>Екскурсія ГК</FormLabel><Select placeholder="Оберіть" name="chestExcursion" value={formData.chestExcursion||''} onChange={handleChange} {...inputStyles}>{CHEST_EXCURSION_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}</Select></FormControl>
+                            <FormControl><FormLabel {...formControlLabelStyles}>Аускультація</FormLabel><Select placeholder="Оберіть" name="auscultationLungs" value={formData.auscultationLungs||''} onChange={handleChange} {...inputStyles}>{AUSCULTATION_LUNGS_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}</Select></FormControl>
+                        </SimpleGrid></Box>
+                        <Divider borderColor="gray.300"/>
+                        <Box><Heading size="md" color="gray.700" mb={2}>C: Кровообіг</Heading><SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={4}>
+                             <FormControl><FormLabel {...formControlLabelStyles}>Пульс: Локалізація</FormLabel><Select placeholder="Оберіть" name="pulseLocation" value={formData.pulseLocation||''} onChange={handleChange} {...inputStyles}>{PULSE_LOCATION_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}</Select></FormControl>
+                             <FormControl><FormLabel {...formControlLabelStyles}>Пульс: Частота</FormLabel><Select name="pulseRate" value={formData.pulseRate||''} onChange={handleChange} {...inputStyles}><option value="">Оберіть</option>{PULSE_RATE_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}</Select>{formData.pulseRate === 'custom' && <Input mt={2} type="number" value={pulseRateCustom||''} placeholder="Введіть ЧСС" onChange={(e) => setPulseRateCustom(e.target.value)} {...inputStyles}/>}</FormControl>
+                            <FormControl><FormLabel {...formControlLabelStyles}>Пульс: Якість</FormLabel><Select placeholder="Оберіть" name="pulseQuality" value={formData.pulseQuality||''} onChange={handleChange} {...inputStyles}>{PULSE_QUALITY_OPTIONS.map(q => <option key={q.value} value={q.value}>{q.label}</option>)}</Select></FormControl>
+                            <FormControl><FormLabel {...formControlLabelStyles}>АТ сист.</FormLabel><NumberInput min={0} name="bloodPressureSystolic" value={formData.bloodPressureSystolic || ''} onChange={(valStr, valNum) => handleNumericChange('bloodPressureSystolic', valStr, valNum)}><NumberInputField placeholder="мм рт.ст." {...inputStyles}/><NumberInputStepper><NumberIncrementStepper /><NumberDecrementStepper /></NumberInputStepper></NumberInput></FormControl>
+                            <FormControl><FormLabel {...formControlLabelStyles}>АТ діаст.</FormLabel><NumberInput min={0} name="bloodPressureDiastolic" value={formData.bloodPressureDiastolic || ''} onChange={(valStr, valNum) => handleNumericChange('bloodPressureDiastolic', valStr, valNum)}><NumberInputField placeholder="мм рт.ст." {...inputStyles}/><NumberInputStepper><NumberIncrementStepper /><NumberDecrementStepper /></NumberInputStepper></NumberInput></FormControl>
+                            <FormControl><FormLabel {...formControlLabelStyles}>Капілярне наповн.</FormLabel><Select placeholder="Оберіть" name="capillaryRefillTime" value={formData.capillaryRefillTime||''} onChange={handleChange} {...inputStyles}>{CAPILLARY_REFILL_TIME_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}</Select></FormControl>
+                            <FormControl><FormLabel {...formControlLabelStyles}>Шкірні покриви</FormLabel><Select placeholder="Оберіть" name="skinStatus" value={formData.skinStatus||''} onChange={handleChange} {...inputStyles}>{SKIN_STATUS_OPTIONS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}</Select></FormControl>
+                            <FormControl><FormLabel {...formControlLabelStyles}>Зовнішня кровотеча</FormLabel><Select placeholder="Оберіть" name="externalBleeding" value={formData.externalBleeding||''} onChange={handleChange} {...inputStyles}>{EXTERNAL_BLEEDING_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}</Select></FormControl>
+                        </SimpleGrid></Box>
+                        <Divider borderColor="gray.300"/>
+                        <Box><Heading size="md" color="gray.700" mb={2}>D: Неврологічний статус</Heading>
+                        <HStack spacing={4} alignItems="baseline" wrap="wrap" mb={3}><Text fontWeight="bold" fontSize="md">ШКГ (GCS):</Text><Text fontSize="lg" fontWeight="bold" color="teal.500">{gcsTotalLocal} / 15</Text></HStack>
+                        <SimpleGrid columns={{ base: 1, md: 3 }} spacing={4}>
+                            <FormControl><FormLabel {...formControlLabelStyles}>Очі (E)</FormLabel><Select placeholder="E" name="glasgowComaScaleEye" value={formData.glasgowComaScaleEye||''} onChange={handleChange} {...inputStyles}>{GCS_EYE_OPTIONS.map(opt=><option key={opt.value} value={opt.value}>{opt.label}</option>)}</Select></FormControl>
+                            <FormControl><FormLabel {...formControlLabelStyles}>Мова (V)</FormLabel><Select placeholder="V" name="glasgowComaScaleVerbal" value={formData.glasgowComaScaleVerbal||''} onChange={handleChange} {...inputStyles}>{GCS_VERBAL_OPTIONS.map(opt=><option key={opt.value} value={opt.value}>{opt.label}</option>)}</Select></FormControl>
+                            <FormControl><FormLabel {...formControlLabelStyles}>Рухи (M)</FormLabel><Select placeholder="M" name="glasgowComaScaleMotor" value={formData.glasgowComaScaleMotor||''} onChange={handleChange} {...inputStyles}>{GCS_MOTOR_OPTIONS.map(opt=><option key={opt.value} value={opt.value}>{opt.label}</option>)}</Select></FormControl>
+                        </SimpleGrid>
+                         <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4} mt={4}>
+                            <FormControl><FormLabel {...formControlLabelStyles}>Зіниці</FormLabel><Select placeholder="Оберіть" name="pupilReaction" value={formData.pupilReaction||''} onChange={handleChange} {...inputStyles}>{PUPIL_REACTION_OPTIONS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}</Select></FormControl>
+                            <FormControl><FormLabel {...formControlLabelStyles}>Рух./Чутл. статус</FormLabel><Select placeholder="Оберіть" name="motorSensoryStatus" value={formData.motorSensoryStatus||''} onChange={handleChange} {...inputStyles}>{MOTOR_SENSORY_STATUS_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}</Select></FormControl>
+                            <GridItem colSpan={{base: 1, md: 2}}><FormControl><FormLabel {...formControlLabelStyles}>Додаткові неврол. знахідки</FormLabel><Textarea name="neurologicalStatusDetails" value={formData.neurologicalStatusDetails||''} onChange={handleChange} placeholder="Судоми, парези, паралічі..." {...inputStyles}/></FormControl></GridItem>
+                        </SimpleGrid></Box>
+                        <Divider borderColor="gray.300"/>
+                        <Box><Heading size="md" color="gray.700" mb={2}>E: Огляд / Середовище</Heading>
+                        <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
+                            <FormControl><FormLabel {...formControlLabelStyles}>t°C тіла</FormLabel><Select name="bodyTemperature" value={formData.bodyTemperature||''} onChange={handleChange} {...inputStyles}><option value="">Оберіть</option>{BODY_TEMPERATURE_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}</Select>{formData.bodyTemperature === 'custom' && <Input mt={2} type="number" step="0.1" value={bodyTemperatureCustom||''} placeholder="Введіть t°C" onChange={(e) => setBodyTemperatureCustom(e.target.value)} {...inputStyles}/>}</FormControl>
+                            <GridItem colSpan={{base: 1, md: 2}}><FormControl isRequired><FormLabel {...formControlLabelStyles}>Виявлені ушкодження / Огляд</FormLabel><Textarea name="exposureDetails" value={formData.exposureDetails||''} onChange={handleChange} rows={4} placeholder="Детальний опис всіх виявлених травм..." {...inputStyles}/></FormControl></GridItem>
+                        </SimpleGrid></Box>
+                    </VStack>
+                </AccordionPanel>
+            </AccordionItem>
+
+            <AccordionItem {...accordionItemStyles}>
+                 <h2><AccordionButton {...accordionButtonStyles}><Box {...accordionButtonTextStyles}>3. Скарги, Анамнез (SAMPLE), Обставини</Box><AccordionIcon /></AccordionButton></h2>
+                <AccordionPanel {...accordionPanelStyles}>
+                    <VStack spacing={4} align="stretch">
+                        <FormControl><FormLabel {...formControlLabelStyles}>Скарги пацієнта (S)</FormLabel><Textarea name="complaints" value={formData.complaints||''} onChange={handleChange} placeholder="Основні скарги..." {...inputStyles}/></FormControl>
+                         <FormControl><FormLabel {...formControlLabelStyles}>Алергії (A)</FormLabel><Textarea name="allergies" value={formData.allergies||''} onChange={handleChange} placeholder="Відомі алергії..." {...inputStyles}/></FormControl>
+                         <FormControl><FormLabel {...formControlLabelStyles}>Медикаменти (M)</FormLabel><Textarea name="medicationsTaken" value={formData.medicationsTaken||''} onChange={handleChange} placeholder="Медикаменти, які пацієнт приймає..." {...inputStyles}/></FormControl>
+                        <FormControl><FormLabel {...formControlLabelStyles}>Перенесені захворювання/травми (P)</FormLabel><Textarea name="pastMedicalHistory" value={formData.pastMedicalHistory||''} onChange={handleChange} placeholder="Важливі хронічні захворювання..." {...inputStyles}/></FormControl>
+                        <SimpleGrid columns={{base:1, md:2}} spacing={4}>
+                            <FormControl><FormLabel {...formControlLabelStyles}>Останній прийом їжі/рідини (L)</FormLabel><Input name="lastOralIntakeMeal" value={formData.lastOralIntakeMeal||''} onChange={handleChange} placeholder="Що саме?" {...inputStyles}/></FormControl>
+                            <FormControl><FormLabel {...formControlLabelStyles}>Час останнього прийому</FormLabel><Input type="time" name="lastOralIntakeTime" value={formData.lastOralIntakeTime||''} onChange={handleChange} {...inputStyles}/></FormControl>
+                        </SimpleGrid>
+                        <FormControl><FormLabel {...formControlLabelStyles}>Події, що передували (E)</FormLabel><Textarea name="eventsLeadingToInjury" value={formData.eventsLeadingToInjury||''} onChange={handleChange} placeholder="Що робив пацієнт..." {...inputStyles}/></FormControl>
+                        <FormControl> {/* НЕОБОВ'ЯЗКОВЕ */}
+                            <FormLabel {...formControlLabelStyles}>Механізм травми / Обставини події (Детально)</FormLabel>
+                            <Textarea name="mechanismOfInjuryDetailed" value={formData.mechanismOfInjuryDetailed||''} onChange={handleChange} rows={3} placeholder="ДТП, падіння, удар..." {...inputStyles}/>
+                        </FormControl>
+                    </VStack>
+                </AccordionPanel>
+            </AccordionItem>
+            
+            <AccordionItem {...accordionItemStyles}>
+                <h2><AccordionButton {...accordionButtonStyles}><Box {...accordionButtonTextStyles}>4. Надана допомога</Box><AccordionIcon /></AccordionButton></h2>
+                <AccordionPanel {...accordionPanelStyles}>
+                    <Heading size="md" mb={3} color="gray.700">Введені медикаменти</Heading>
+                    <VStack spacing={4} align="stretch">
+                        {(formData.medicationsAdministered || []).map((med, index) => (
+                            <Box key={`med-${index}`} {...nestedListBoxStyles}>
+                                <Grid templateColumns={{ base: "1fr", md: "repeat(2, 1fr)", xl: "2.5fr 1fr 1.5fr 1fr 1.5fr auto" }} gap={3} alignItems="flex-end">
+                                    <FormControl gridColumn={{ base: "1 / -1", md: "1 / -1", xl: "1 / 2" }}><FormLabel {...formControlLabelStyles} fontSize="sm">Назва препарату</FormLabel>
+                                        <CustomEntrySelect namePrefix={`med-name-${index}`} value={med.name || ''} onChange={(e) => handleNestedListChange('medicationsAdministered', index, 'name', e.target.value)} options={COMMON_PREHOSPITAL_MEDICATIONS} customValue={med.customName || ''} onCustomChange={(val) => handleNestedListCustomChange('medicationsAdministered', index, 'customName', val)} placeholder="Оберіть препарат" customPlaceholder="Введіть назву"/>
+                                    </FormControl>
+                                    <FormControl><FormLabel {...formControlLabelStyles} fontSize="sm">Доза</FormLabel><Input size="sm" value={med.dosage||''} onChange={(e) => handleNestedListChange('medicationsAdministered', index, 'dosage', e.target.value)} placeholder="Напр. 10мг" {...inputStyles}/></FormControl>
+                                    <FormControl><FormLabel {...formControlLabelStyles} fontSize="sm">Шлях введення</FormLabel>
+                                        <CustomEntrySelect namePrefix={`med-route-${index}`} value={med.route || ''} onChange={(e) => handleNestedListChange('medicationsAdministered', index, 'route', e.target.value)} options={MEDICATION_ROUTE_OPTIONS} customValue={med.customRoute || ''} onCustomChange={(val) => handleNestedListCustomChange('medicationsAdministered', index, 'customRoute', val)} placeholder="Оберіть шлях" customPlaceholder="Введіть шлях"/>
+                                    </FormControl>
+                                    <FormControl><FormLabel {...formControlLabelStyles} fontSize="sm">Час</FormLabel><Input size="sm" type="time" value={med.time||''} onChange={(e) => handleNestedListChange('medicationsAdministered', index, 'time', e.target.value)} {...inputStyles}/></FormControl>
+                                    <FormControl><FormLabel {...formControlLabelStyles} fontSize="sm">Ефективність</FormLabel><Select size="sm" placeholder="Оцініть" value={med.effectiveness||''} onChange={(e) => handleNestedListChange('medicationsAdministered', index, 'effectiveness', e.target.value)} {...inputStyles}>{EFFECTIVENESS_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}</Select></FormControl>
+                                    <IconButton aria-label="Видалити медикамент" icon={<DeleteIcon />} colorScheme="red" variant="ghost" size="sm" onClick={() => removeNestedListItem('medicationsAdministered', index)} alignSelf="flex-end" mb={showCustomSubInput(med.name, 'medicationsAdministered', index, 'name') || showCustomSubInput(med.route, 'medicationsAdministered', index, 'route') ? 10 : 1} />
+                                </Grid>
+                            </Box>
+                        ))}
+                        <Button leftIcon={<AddIcon />} size="sm" colorScheme="teal" variant="outline" onClick={() => addNestedListItem('medicationsAdministered')} borderRadius="lg" alignSelf="flex-start">Додати медикамент</Button>
+                    </VStack>
+                    <Divider my={6} borderColor="gray.300"/>
+                    <Heading size="md" mb={3} color="gray.700">Виконані процедури/маніпуляції</Heading>
+                    <VStack spacing={4} align="stretch">
+                        {(formData.proceduresPerformed || []).map((proc, index) => (
+                            <Box key={`proc-${index}`} {...nestedListBoxStyles}>
+                                <Grid templateColumns={{ base: "1fr", md: "2fr 1fr auto" }} gap={3} alignItems="flex-start">
+                                    <GridItem colSpan={{base:1, md:1}}><FormControl><FormLabel {...formControlLabelStyles} fontSize="sm">Назва процедури</FormLabel>
+                                        <CustomEntrySelect namePrefix={`proc-name-${index}`} value={proc.name || ''} onChange={(e) => handleNestedListChange('proceduresPerformed', index, 'name', e.target.value)} options={COMMON_PREHOSPITAL_PROCEDURES} customValue={proc.customName || ''} onCustomChange={(val) => handleNestedListCustomChange('proceduresPerformed', index, 'customName', val)} placeholder="Оберіть процедуру" customPlaceholder="Введіть назву"/>
+                                    </FormControl></GridItem>
+                                    <FormControl><FormLabel {...formControlLabelStyles} fontSize="sm">Час виконання</FormLabel><Input size="sm" type="time" value={proc.time||''} onChange={(e) => handleNestedListChange('proceduresPerformed', index, 'time', e.target.value)} {...inputStyles}/></FormControl>
+                                    <IconButton aria-label="Видалити процедуру" icon={<DeleteIcon />} colorScheme="red" variant="ghost" size="sm" onClick={() => removeNestedListItem('proceduresPerformed', index)} alignSelf="center" mt={showCustomSubInput(proc.name, 'proceduresPerformed', index, 'name') ? 7 : 2}/>
+                                    <GridItem colSpan={{ base: 1, md: 3 }}><FormControl><FormLabel {...formControlLabelStyles} fontSize="sm">Деталі процедури</FormLabel><Textarea size="sm" value={proc.details||''} onChange={(e) => handleNestedListChange('proceduresPerformed', index, 'details', e.target.value)} placeholder="Опишіть деталі..." {...inputStyles}/></FormControl></GridItem>
+                                    <GridItem colSpan={{ base: 1, md: 3 }}><FormControl><FormLabel {...formControlLabelStyles} fontSize="sm">Ефективність</FormLabel><Select size="sm" placeholder="Оцініть" value={proc.effectiveness||''} onChange={(e) => handleNestedListChange('proceduresPerformed', index, 'effectiveness', e.target.value)} {...inputStyles}>{EFFECTIVENESS_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}</Select></FormControl></GridItem>
+                                </Grid>
+                            </Box>
+                        ))}
+                        <Button leftIcon={<AddIcon />} size="sm" colorScheme="teal" variant="outline" onClick={() => addNestedListItem('proceduresPerformed')} borderRadius="lg" alignSelf="flex-start">Додати процедуру</Button>
+                    </VStack>
+                    <Divider my={6} borderColor="gray.300"/>
+                    <FormControl><FormLabel {...formControlLabelStyles}>В/В доступ (деталі)</FormLabel><Textarea name="ivAccessDetails" value={formData.ivAccessDetails||''} onChange={handleChange} placeholder="Місце, катетер G, спроби, інфузія..." {...inputStyles}/></FormControl>
+                </AccordionPanel>
+            </AccordionItem>
+            
+            <AccordionItem {...accordionItemStyles}>
+                <h2><AccordionButton {...accordionButtonStyles}><Box {...accordionButtonTextStyles}>5. Транспортування</Box><AccordionIcon /></AccordionButton></h2>
+                <AccordionPanel {...accordionPanelStyles}>
+                    <Grid templateColumns={{ base: "1fr", md: "repeat(2, 1fr)" }} gap={5}>
+                        <FormControl><FormLabel {...formControlLabelStyles}>Спосіб транспортування</FormLabel><Select placeholder="Оберіть спосіб" name="transportationMethod" value={formData.transportationMethod||''} onChange={handleChange} {...inputStyles}>{TRANSPORTATION_METHOD_OPTIONS.map(method => <option key={method.value} value={method.value}>{method.label}</option>)}</Select></FormControl>
+                        {formData.transportationMethod === 'other' && (<FormControl isRequired={!isNotTransported}><FormLabel {...formControlLabelStyles}>Деталі іншого способу</FormLabel><Textarea name="transportationOtherDetails" value={formData.transportationOtherDetails||''} onChange={handleChange} placeholder="Вкажіть деталі..." isDisabled={isNotTransported} {...inputStyles}/></FormControl>)}
+                        <FormControl><FormLabel {...formControlLabelStyles}>Лікувальний заклад (куди транспортується)</FormLabel><Input name="destinationFacility" value={formData.destinationFacility||''} onChange={handleChange} placeholder="Назва закладу та відділення" isDisabled={isNotTransported} {...inputStyles}/></FormControl>
+                    </Grid>
+                </AccordionPanel>
+            </AccordionItem>
+
+            <AccordionItem {...accordionItemStyles}>
+                <h2><AccordionButton {...accordionButtonStyles}><Box {...accordionButtonTextStyles}>6. Тріаж та додаткова інформація</Box><AccordionIcon /></AccordionButton></h2>
+                <AccordionPanel {...accordionPanelStyles}>
+                    <VStack spacing={4} align="stretch">
+                        <FormControl><FormLabel {...formControlLabelStyles}>Тріажна категорія</FormLabel><Select placeholder="Оберіть категорію" name="triageCategory" value={formData.triageCategory||''} onChange={handleChange} {...inputStyles}>{TRIAGE_CATEGORIES_OPTIONS.map(cat => <option key={cat.value} value={cat.value} style={{color: cat.value !== 'unknown' ? cat.color : undefined }}>{cat.label}</option>)}</Select></FormControl>
+                        <FormControl><FormLabel {...formControlLabelStyles}>Revised Trauma Score (RTS)</FormLabel><Input name="rtsScore" value={formData.rtsScore || 'Н/Д'} isReadOnly placeholder="Розраховується" _placeholder={{ color: 'gray.500' }} bg={formData.rtsScore && formData.rtsScore !== 'Н/Д' ? "gray.200" : "gray.100"} {...inputStyles}/></FormControl>
+                        <FormControl><FormLabel {...formControlLabelStyles}>Додаткові примітки / Ускладнення</FormLabel><Textarea name="additionalNotes" value={formData.additionalNotes||''} onChange={handleChange} placeholder="Будь-яка інша важлива інформація..." {...inputStyles}/></FormControl>
+                        <FormControl isRequired><FormLabel {...formControlLabelStyles}>Відповідальний мед. працівник (ПІБ, посада)</FormLabel><Input name="medicalTeamResponsible" value={formData.medicalTeamResponsible||''} onChange={handleChange} placeholder="Напр. Лікар ЕМД Іванов І.І." {...inputStyles}/></FormControl>
+                    </VStack>
+                </AccordionPanel>
+            </AccordionItem>
+          </Accordion>
+
+          <HStack {...actionButtonsHStackStyles}>
+            {onCancel && <Button variant="ghost" colorScheme="gray" onClick={onCancel} size="lg" minW="120px" borderRadius="lg">Скасувати</Button>}
+            <Button type="submit" {...primaryButtonStyles}>Зберегти Картку</Button>
+          </HStack>
+        </VStack>
+      </form>
+    </Box>
+  );
+};
 
 export default PreHospitalCareSection;

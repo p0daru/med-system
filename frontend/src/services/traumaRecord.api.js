@@ -10,51 +10,63 @@ const apiClient = axios.create({
     },
 });
 
-// apiClient.interceptors.request.use(...); // Ваш інтерсептор для токена, якщо є
+// Інтерсептор для токену, якщо потрібен
+// apiClient.interceptors.request.use(config => {
+//   const token = localStorage.getItem('authToken');
+//   if (token) {
+//     config.headers.Authorization = `Bearer ${token}`;
+//   }
+//   return config;
+// }, error => {
+//   return Promise.reject(error);
+// });
 
 /**
- * Створює новий первинний запис про травму (догоспітальний етап).
- * Надсилає POST запит на /api/trauma-records/prehospital.
- * @param {object} preHospitalFormData - Повний об'єкт з даними догоспітального етапу.
- * @returns {Promise<import('axios').AxiosResponse<any>>} Проміс з відповіддю сервера.
+ * Створює новий запис про травму.
+ * @param {object} traumaData - Повний об'єкт з даними картки.
+ * @returns {Promise<import('axios').AxiosResponse<any>>}
  */
-export const createPreHospitalRecord = (preHospitalFormData) => {
-    // Бекенд очікує весь об'єкт formData напряму
-    return apiClient.post('/api/trauma-records/prehospital', preHospitalFormData);
+export const createTraumaRecord = (traumaData) => {
+    return apiClient.post('/api/trauma-records', traumaData);
 };
 
+// Зберігаємо старий експорт для сумісності, якщо десь ще використовується
+// Або просто видаліть його, якщо ви оновили всі виклики на createTraumaRecord
+export { createTraumaRecord as createPreHospitalRecord };
+
+
 /**
- * Оновлює існуючий запис про травму (загальне оновлення).
- * Передбачається, що є ендпоінт PUT /api/trauma-records/:id для оновлення всього запису.
- * Якщо такого ендпоінту немає, цю функцію потрібно буде адаптувати або створити відповідний ендпоінт на бекенді.
+ * Оновлює існуючий запис про травму.
  * @param {string} recordMongoId - ID запису в MongoDB (_id) для оновлення.
- * @param {object} dataToUpdate - Об'єкт з даними для оновлення (зазвичай це весь об'єкт formData).
+ * @param {object} dataToUpdate - Об'єкт з даними для оновлення.
  * @returns {Promise<import('axios').AxiosResponse<any>>}
  */
 export const updateTraumaRecord = async (recordMongoId, dataToUpdate) => {
     if (!recordMongoId) {
         return Promise.reject(new Error("ID запису MongoDB не надано для оновлення"));
     }
-    // Цей URL є припущенням. Уточніть його з вашою архітектурою API.
+    // Використовуємо :id в URL, як очікує бекенд
     return apiClient.put(`/api/trauma-records/${recordMongoId}`, dataToUpdate);
 };
 
 
 /**
  * Оновлює існуючий запис даними з госпітального етапу.
- * Надсилає PUT запит на /api/trauma-records/:recordId/hospital.
  * @param {string} recordMongoId - ID запису в MongoDB (_id) для оновлення.
- * @param {object} hospitalUpdateData - Об'єкт, що містить { hospitalCareData, updatedPatientInfo? }.
- * @returns {Promise<import('axios').AxiosResponse<any>>} Проміс з відповіддю сервера.
+ * @param {object} hospitalUpdateData - Об'єкт, що містить { hospitalCareData, updatedPatientInfo?, status? }.
+ * @returns {Promise<import('axios').AxiosResponse<any>>}
  */
 export const updateWithHospitalCareData = (recordMongoId, hospitalUpdateData) => {
+    if (!recordMongoId) {
+        return Promise.reject(new Error("ID запису MongoDB не надано для оновлення госпітальними даними"));
+    }
+    // Використовуємо :id в URL, як очікує бекенд
     return apiClient.put(`/api/trauma-records/${recordMongoId}/hospital`, hospitalUpdateData);
 };
 
 /**
  * Отримує всі записи про травми.
- * Надсилає GET запит на /api/trauma-records.
- * @returns {Promise<import('axios').AxiosResponse<any>>} Проміс з масивом записів.
+ * @returns {Promise<import('axios').AxiosResponse<any>>}
  */
 export const getAllTraumaRecords = () => {
     return apiClient.get('/api/trauma-records');
@@ -62,26 +74,26 @@ export const getAllTraumaRecords = () => {
 
 /**
  * Отримує один запис про травму за його ID (MongoDB _id).
- * Надсилає GET запит на /api/trauma-records/:id.
  * @param {string} recordMongoId - ID запису в MongoDB (_id).
- * @returns {Promise<import('axios').AxiosResponse<any>>} Проміс з об'єктом запису.
+ * @returns {Promise<import('axios').AxiosResponse<any>>}
  */
 export const getTraumaRecordById = (recordMongoId) => {
     if (!recordMongoId) {
         return Promise.reject(new Error("ID запису не надано для getTraumaRecordById"));
     }
+    // Використовуємо :id в URL, як очікує бекенд
     return apiClient.get(`/api/trauma-records/${recordMongoId}`);
 };
 
 /**
  * Видаляє запис про травму за його ID (MongoDB _id).
- * Надсилає DELETE запит на /api/trauma-records/:id.
  * @param {string} recordMongoId - ID запису в MongoDB (_id).
- * @returns {Promise<import('axios').AxiosResponse<any>>} Проміс з відповіддю сервера.
+ * @returns {Promise<import('axios').AxiosResponse<any>>}
  */
 export const deleteTraumaRecord = (recordMongoId) => {
     if (!recordMongoId) {
         return Promise.reject(new Error("ID запису не надано для deleteTraumaRecord"));
     }
+    // Використовуємо :id в URL, як очікує бекенд
     return apiClient.delete(`/api/trauma-records/${recordMongoId}`);
 };

@@ -19,21 +19,20 @@
    }
  })();
 
- // frontend/src/main.jsx
 import React from 'react';
- import ReactDOM from 'react-dom/client';
- import App from './App.jsx';
- import { ChakraProvider, ColorModeScript } from '@chakra-ui/react';
- import { BrowserRouter } from 'react-router-dom';
- import theme from './config/theme';
+import ReactDOM from 'react-dom/client';
+import App from './App.jsx';
+import { ChakraProvider, ColorModeScript } from '@chakra-ui/react';
+import { BrowserRouter } from 'react-router-dom';
+import theme from './config/theme'; // Переконайтесь, що цей файл існує та експортує тему
 
- ReactDOM.createRoot(document.getElementById('root')).render(
-   <React.StrictMode>
-     <BrowserRouter basename="/med-system/">
-       <ChakraProvider theme={theme}>
-         <ColorModeScript initialColorMode={theme.config.initialColorMode} />
-         <App />
-       </ChakraProvider>
-     </BrowserRouter>
-   </React.StrictMode>
- );
+ReactDOM.createRoot(document.getElementById('root')).render(
+  <React.StrictMode>
+    <BrowserRouter basename="/med-system/">
+      <ChakraProvider theme={theme}>
+        <ColorModeScript initialColorMode={theme.config.initialColorMode} />
+        <App />
+      </ChakraProvider>
+    </BrowserRouter>
+  </React.StrictMode>
+);

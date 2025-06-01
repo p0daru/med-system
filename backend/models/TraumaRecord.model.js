@@ -4,155 +4,175 @@ const { Schema } = mongoose;
 
 // --- Вкладені схеми для PreHospital ---
 
+// Інформація про пацієнта (узгоджено з INITIAL_PRE_HOSPITAL_FORM_DATA)
 const PatientInfoSchemaPreHospital = new Schema({
-    isUnknown: { type: Boolean, default: false },
-    tempPatientId: { type: String },
-    lastName: { type: String },
-    firstName: { type: String },
-    middleName: { type: String },
-    dateOfBirth: { type: Date }, // Буде зберігатися як дата, якщо передано 'YYYY-MM-DD'
-    ageYears: { type: String }, // Зберігаємо як рядок, бо може бути "орієнтовний"
-    gender: { type: String, enum: ['Чоловіча', 'Жіноча', 'Невідомо', ''] }, // Додано порожній рядок для можливості "не обрано"
-    contactPhone: { type: String },
-    addressRough: { type: String },
-    allergiesShort: { type: String },
-    medicationsShort: { type: String },
-    medicalHistoryShort: { type: String },
+    patientFullName: { type: String }, // Може бути "Невідомо..."
+    patientGender: { type: String, enum: ['male', 'female', 'other', 'unknown', ''] },
+    patientDateOfBirth: { type: Date }, // Фронтенд надсилає 'YYYY-MM-DD' або порожній рядок
+    patientApproximateAge: { type: String }, // Зберігаємо як рядок (напр. "25", "близько 40")
 }, { _id: false });
 
-const MarchSurveySchema = new Schema({
-    massiveHemorrhageControl: { type: String },
-    airwayManagement: { type: String },
-    breathingAssessment: { type: String },
-    circulationAssessment: { type: String },
-    hypothermiaPreventionHeadInjury: { type: String },
+// Введені медикаменти (узгоджено з INITIAL_PRE_HOSPITAL_FORM_DATA)
+const MedicationAdministeredSchema = new Schema({
+    name: { type: String }, // Може бути кастомним значенням
+    dosage: { type: String },
+    route: { type: String }, // Може бути кастомним значенням
+    time: { type: String }, // HH:mm
+    effectiveness: { type: String, enum: ['effective', 'partially_effective', 'not_effective', 'not_assessed', ''] },
 }, { _id: false });
 
-const VitalSignSchemaPreHospital = new Schema({
-    timestamp: { type: String }, // Зберігаємо час як HH:mm рядок
-    sbp: { type: String }, // Зберігаємо як рядки, щоб дозволити порожні значення
-    dbp: { type: String },
-    hr: { type: String },
-    rr: { type: String },
-    spo2: { type: String },
-    gcsE: { type: String },
-    gcsV: { type: String },
-    gcsM: { type: String },
-    gcsTotal: { type: String }, // Може бути розрахований на фронті або тут
-    tempC: { type: String },
-    painScore: { type: String },
-}, { _id: false });
-
-const InjurySchemaPreHospital = new Schema({
-    bodyPart: { type: String },
-    typeOfInjury: { type: String },
-    description: { type: String },
-}, { _id: false });
-
-const InterventionSchemaPreHospital = new Schema({
-    type: { type: String },
-    timestamp: { type: String }, // Зберігаємо час як HH:mm рядок
+// Виконані процедури (узгоджено з INITIAL_PRE_HOSPITAL_FORM_DATA)
+const ProcedurePerformedSchema = new Schema({
+    name: { type: String }, // Може бути кастомним значенням
+    time: { type: String }, // HH:mm
     details: { type: String },
-}, { _id: false });
-
-const MedicationSchemaPreHospital = new Schema({
-    name: { type: String },
-    dose: { type: String },
-    unit: { type: String },
-    route: { type: String },
-    timestamp: { type: String }, // Зберігаємо час як HH:mm рядок
-}, { _id: false });
-
-const TransportationSchemaPreHospital = new Schema({
-    destinationFacilityName: { type: String },
-    transportMode: { type: String },
-    departureTimeFromScene: { type: Date }, // Дата і час
-    patientConditionDuringTransport: { type: String },
+    effectiveness: { type: String, enum: ['effective', 'partially_effective', 'not_effective', 'not_assessed', ''] },
 }, { _id: false });
 
 
 // --- Основна схема TraumaRecord ---
+// Ця схема тепер буде більш плоскою, відображаючи структуру formData з фронтенду
 const TraumaRecordSchema = new Schema({
-    internalCardId: { type: String, unique: true, required: true, index: true }, // З фронтенду
+    // Ідентифікація
+    cardId: { type: String, unique: true, required: true, index: true }, // Раніше internalCardId, тепер cardId з фронтенду
+
+    // 1. Загальна інформація, пацієнт, місце події
     incidentDateTime: { type: Date, required: true },
-    reasonForCall: { type: String, required: true },
+    arrivalDateTime: { type: Date, required: true },
+    sceneTypeValue: { type: String }, // Значення з Select або кастомне значення
+    // sceneTypeOther: { type: String }, // Це поле більше не потрібне, якщо фронт надсилає фінальне в sceneTypeValue
+    patientInfo: PatientInfoSchemaPreHospital, // Використовуємо оновлену схему
     
-    patientInfo: PatientInfoSchemaPreHospital, // Вкладена схема для інформації про пацієнта
+    catastrophicHemorrhageControlled: { type: Boolean, default: false },
+    catastrophicHemorrhageDetails: { type: String },
 
-    teamArrivalTimeScene: { type: Date, required: true },
-    patientContactTime: { type: Date },
+    // 2. Оцінка стану (ABCDE)
+    // A
+    airwayStatus: { type: String },
+    // B
+    breathingRate: { type: String }, // Може бути діапазоном або кастомним числом
+    breathingSaturation: { type: String }, // Може бути діапазоном або кастомним числом
+    breathingQuality: { type: String },
+    chestExcursion: { type: String },
+    auscultationLungs: { type: String },
+    // C
+    pulseLocation: { type: String },
+    pulseRate: { type: String }, // Може бути діапазоном або кастомним числом
+    pulseQuality: { type: String },
+    bloodPressureSystolic: { type: String },
+    bloodPressureDiastolic: { type: String },
+    capillaryRefillTime: { type: String },
+    skinStatus: { type: String },
+    externalBleeding: { type: String },
+    // D
+    consciousnessLevel: { type: String }, // З INITIAL_PRE_HOSPITAL_FORM_DATA, якщо використовується (AVPU)
+    glasgowComaScaleEye: { type: String },
+    glasgowComaScaleVerbal: { type: String },
+    glasgowComaScaleMotor: { type: String },
+    gcsTotal: { type: String }, // Розраховується на фронтенді
+    pupilReaction: { type: String },
+    motorSensoryStatus: { type: String },
+    neurologicalStatusDetails: { type: String },
+    // E
+    bodyTemperature: { type: String }, // Може бути діапазоном або кастомним числом
+    exposureDetails: { type: String },
+
+    // 3. Скарги, Анамнез (SAMPLE), Обставини
     complaints: { type: String },
+    allergies: { type: String },
+    medicationsTaken: { type: String },
+    pastMedicalHistory: { type: String },
+    lastOralIntakeMeal: { type: String },
+    lastOralIntakeTime: { type: String }, // HH:mm
+    eventsLeadingToInjury: { type: String },
+    mechanismOfInjuryDetailed: { type: String },
 
-    triageCategory: { type: String, required: true },
-    triageTimestamp: { type: String }, // Зберігаємо час як HH:mm рядок
+    // 4. Надана допомога
+    medicationsAdministered: [MedicationAdministeredSchema],
+    proceduresPerformed: [ProcedurePerformedSchema],
+    ivAccessDetails: { type: String },
 
-    marchSurvey: MarchSurveySchema, // Вкладена схема для MARCH
+    // 5. Транспортування
+    transportationMethod: { type: String },
+    transportationOtherDetails: { type: String }, // Для кастомного способу транспортування
+    // transportationPosition - ПРИБРАНО
+    destinationFacility: { type: String },
+    // departureTimeFromScene, arrivalTimeAtFacility, handoverToWhom - ПРИБРАНО
 
-    vitalSignsLog: [VitalSignSchemaPreHospital],
-    suspectedInjuries: [InjurySchemaPreHospital],
-    interventionsPerformed: [InterventionSchemaPreHospital],
-    medicationsAdministered: [MedicationSchemaPreHospital],
+    // 6. Тріаж та додаткова інформація
+    triageCategory: { type: String }, // Не required, бо може бути не застосовано
+    rtsScore: { type: String }, // Розраховується на фронтенді
+    additionalNotes: { type: String },
+    // medicalTeamMembers - ПРИБРАНО
+    medicalTeamResponsible: { type: String, required: true }, // Залишено як обов'язкове
     
-    transportation: TransportationSchemaPreHospital, // Вкладена схема для транспортування
-    
-    outcomePreHospital: { type: String },
-    notes: { type: String },
-
-    // Поля для госпітального етапу (залишимо їх, але вони не будуть заповнюватися на ДЕ)
-    hospitalCare: {
-        type: Schema.Types.Mixed, // Можна зробити більш детальною схемою пізніше
+    // Статус картки (може бути корисно для подальшої логіки)
+    status: { 
+        type: String, 
+        default: 'PreHospitalActive', 
+        enum: ['PreHospitalActive', 'PreHospitalFinalized', 'HospitalCareActive', 'HospitalCareFinalized', 'Closed', 'Archived'] 
+    },
+    // Поля для госпітального етапу (залишаємо для майбутнього)
+    hospitalCareData: { // Перейменовано з hospitalCare для ясності
+        type: Schema.Types.Mixed,
         default: {},
     },
-    status: { type: String, default: 'PreHospital', enum: ['PreHospital', 'HospitalCare', 'Closed'] },
 
 }, { timestamps: true }); // Автоматично додає createdAt, updatedAt
 
-// Перетворення дат для полів типу Date перед збереженням
-// Це важливо, якщо з фронтенду приходить рядок
+// Хук для конвертації дат перед збереженням
 TraumaRecordSchema.pre('save', function(next) {
     const fieldsToConvert = [
         'incidentDateTime', 
-        'patientInfo.dateOfBirth',
-        'teamArrivalTimeScene', 
-        'patientContactTime', 
-        'transportation.departureTimeFromScene'
+        'arrivalDateTime',
+        // 'patientInfo.patientDateOfBirth', // Обробляється окремо, бо формат YYYY-MM-DD
+        // Дати транспортування прибрані, але якщо повернуться, додати сюди
     ];
-    fieldsToConvert.forEach(path => {
-        const keys = path.split('.');
-        let value;
-        if (keys.length === 1) {
-            value = this[keys[0]];
-        } else if (keys.length === 2 && this[keys[0]]) {
-            value = this[keys[0]][keys[1]];
-        }
 
+    fieldsToConvert.forEach(path => {
+        let value = this[path];
         if (value && typeof value === 'string') {
             const dateValue = new Date(value);
-            if (!isNaN(dateValue)) {
-                if (keys.length === 1) {
-                    this[keys[0]] = dateValue;
-                } else if (keys.length === 2 && this[keys[0]]) {
-                    this[keys[0]][keys[1]] = dateValue;
-                }
+            if (!isNaN(dateValue.getTime())) { // Перевірка на валідність дати
+                this[path] = dateValue;
             } else {
-                // Якщо не вдалося перетворити, можна або видалити, або залишити як є, або викликати помилку
-                // Для dateOfBirth, якщо формат не YYYY-MM-DD, може бути проблема
-                if (path === 'patientInfo.dateOfBirth' && value.match(/^\d{4}-\d{2}-\d{2}$/)) {
-                   // вже в правильному форматі для new Date()
-                } else if (path === 'patientInfo.dateOfBirth') {
-                    this.patientInfo.dateOfBirth = null; // або undefined, або не змінювати
-                }
+                console.warn(`Could not convert string "${value}" to Date for path "${path}". Leaving as is or setting to null.`);
+                this[path] = null; // Або залишити як є, або обробити помилку
             }
-        } else if (value === '') { // Якщо прийшов порожній рядок, встановлюємо null
-             if (keys.length === 1) {
-                this[keys[0]] = null;
-            } else if (keys.length === 2 && this[keys[0]]) {
-                this[keys[0]][keys[1]] = null;
-            }
+        } else if (value === '') {
+            this[path] = null;
         }
     });
+
+    // Окрема обробка для patientInfo.patientDateOfBirth, якщо воно існує
+    if (this.patientInfo && this.patientInfo.patientDateOfBirth) {
+        if (typeof this.patientInfo.patientDateOfBirth === 'string') {
+            const dobStr = this.patientInfo.patientDateOfBirth;
+            if (dobStr.match(/^\d{4}-\d{2}-\d{2}$/)) { // Перевірка формату YYYY-MM-DD
+                const dateValue = new Date(dobStr);
+                const parts = dobStr.split('-');
+                this.patientInfo.patientDateOfBirth = new Date(Date.UTC(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2])));
+            } else if (dobStr === '') {
+                this.patientInfo.patientDateOfBirth = null;
+            } else {
+                console.warn(`Invalid date format for patientDateOfBirth: "${dobStr}". Setting to null.`);
+                this.patientInfo.patientDateOfBirth = null;
+            }
+        }
+    } else if (this.patientInfo) {
+        this.patientInfo.patientDateOfBirth = null; // Якщо поле є, але порожнє
+    }
+
+
+    // Очищення порожніх масивів (якщо фронтенд надсилає масив з одним порожнім об'єктом за замовчуванням)
+    if (this.medicationsAdministered && this.medicationsAdministered.length === 1 && !this.medicationsAdministered[0].name) {
+        this.medicationsAdministered = [];
+    }
+    if (this.proceduresPerformed && this.proceduresPerformed.length === 1 && !this.proceduresPerformed[0].name) {
+        this.proceduresPerformed = [];
+    }
+
     next();
 });
-
 
 module.exports = mongoose.model('TraumaRecord', TraumaRecordSchema);

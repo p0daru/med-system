@@ -34,92 +34,81 @@ const UnderDevelopmentPage = ({ title }) => (
     </Box>
 );
 
+
 function App() {
-    const sidebarWidth = '250px'; // Або будь-яка інша ширина
+    const sidebarWidth = '250px';
     const { isOpen: isMobileNavOpen, onToggle: onMobileNavToggle, onClose: onMobileNavClose } = useDisclosure();
 
     return (
         <ChakraProvider theme={theme}>
-            <Flex direction="row" minH="100vh" bg="gray.100"> {/* Змінено на Flex для всього App */}
+            <Flex direction="row" minH="100vh" bg={theme.colors.pageBg || "gray.100"}> {/* Використовуємо колір з теми */}
 
-               {/* Десктопний Sidebar */}
                 <Sidebar
                     display={{ base: 'none', md: 'flex' }}
-                    w={sidebarWidth} // Передаємо ширину
-                    onClose={onMobileNavClose} // Для закриття при кліку на посилання (хоча для десктопу це не так критично)
+                    w={sidebarWidth}
+                    onClose={() => {}} // Для десктопу onClose може бути порожньою функцією
                 />
 
-                {/* Мобільний Sidebar (Drawer) */}
                 <Sidebar
                     isOpen={isMobileNavOpen}
                     onClose={onMobileNavClose}
-                    display={{ base: 'flex', md: 'none' }} // display 'flex' тут вже не так важливий, бо Drawer контролює видимість
-                    isDrawer // Вказуємо, що це Drawer
+                    display={{ base: 'flex', md: 'none' }}
+                    isDrawer
                 />
                 <Box
                     as="main"
                     flex="1"
-                    // ml={{ base: 0, md: sidebarWidth }} // Більше не потрібен, якщо Sidebar не 'fixed' або 'absolute'
-                                                        // Якщо Sidebar має position fixed, то цей ml потрібен.
-                                                        // Для поточного Sidebar (без position: fixed) це не потрібно.
-                    p={{ base: 3, sm: 4, md: 6 }}
-                    w={{ base: '100%', md: `calc(100% - ${sidebarWidth})`}} // Обережно з цим, якщо сайдбар не фіксований
-                    overflowX="hidden" // Важливо для горизонтального скролу
+                    // ml={{ base: 0, md: sidebarWidth }} // Потрібно, якщо Sidebar має position: fixed
+                    w={{ base: '100%', md: `calc(100% - ${sidebarWidth})`}} // Якщо sidebar не fixed, ця ширина коректна
+                    overflowX="hidden"
+                    // p={{ base: 3, sm: 4, md: 6 }} // Відступи краще застосувати до внутрішнього контейнера сторінки
                 >
-                    {/* Верхня панель для мобільної навігації */}
                     <Flex
                         display={{ base: 'flex', md: 'none' }}
                         alignItems="center"
                         justifyContent="space-between"
                         mb={4}
-                        p={2}
-                        bg="white"
+                        px={4} // Збільшено відступи
+                        py={3}
+                        bg="white" // Або theme.colors.cardBg
                         boxShadow="sm"
-                        borderRadius="md"
-                        position="sticky" // Робить хедер "липким" на мобільних
+                        // borderRadius="md" // Можна прибрати, якщо хедер на всю ширину
+                        position="sticky"
                         top={0}
-                        zIndex="sticky" // Щоб був поверх контенту, але нижче модалок
+                        zIndex="sticky"
                     >
                         <RouterLink to="/trauma-journal">
-                            <Heading size="md" color="red.600">EMS Журнал</Heading>
+                            {/* Ви можете використовувати логотип або більш стилізований заголовок */}
+                            <Heading size="md" color="brand.primary.500"> {/* Використовуємо колір з теми */}
+                                EMS Журнал
+                            </Heading>
                         </RouterLink>
                         <IconButton
                             onClick={onMobileNavToggle}
                             variant="ghost"
-                            colorScheme="gray"
-                            aria-label={isMobileNavOpen ? "Close menu" : "Open menu"}
+                            aria-label={isMobileNavOpen ? "Закрити меню" : "Відкрити меню"}
                             icon={isMobileNavOpen ? <CloseIcon /> : <HamburgerIcon fontSize="xl" />}
                         />
                     </Flex>
 
-                    {/* Основний контент сторінки */}
-                    <Box> {/* Додаткова обгортка може бути корисною для відступів */}
+                    {/* Основний контент сторінки з власними відступами */}
+                    <Box p={{ base: 3, sm: 4, md: 6 }}>
                         <Routes>
-                            {/* Головний маршрут перенаправляє на журнал */}
                             <Route path="/" element={<Navigate replace to="/trauma-journal" />} />
-
-                            {/* Журнал травм */}
                             <Route path="/trauma-journal" element={<PatientJournal />} />
-
-                            {/* Створення нової догоспітальної картки */}
-                            {/* Використовуємо /prehospital-care для нових, PreHospitalCareSection сам визначить, що ID немає */}
                             <Route path="/prehospital-care" element={<PreHospitalCareSection />} />
-
-                            {/* Редагування існуючої догоспітальної картки */}
-                            {/* Цей маршрут буде використовуватися з PatientJournal */}
                             <Route path="/prehospital-care/:id" element={<PreHospitalCareSection />} />
 
-                            {/* Приклад маршруту для перегляду (поки що як заглушка) */}
+                            {/* Маршрут для перегляду картки */}
+                            {/* Шлях: /med-system/trauma-records/АЙДІ_ЗАПИСУ/view */}
                             <Route
-                                path="/trauma-records/:id/view"
+                                path="/trauma-records/:id/view" // Залишаємо цей шлях
                                 element={<UnderDevelopmentPage title="Перегляд Картки Пацієнта" />}
                             />
 
-                            {/* Приклади інших маршрутів */}
                             <Route path="/reports" element={<UnderDevelopmentPage title="Звіти" />} />
                             <Route path="/settings" element={<UnderDevelopmentPage title="Налаштування" />} />
 
-                            {/* Сторінка 404 */}
                             <Route path="*" element={
                                 <VStack spacing={4} textAlign="center" py={10} px={6} mt={{ base: "10vh", md: "15vh" }}>
                                     <Icon as={WarningIcon} boxSize={'50px'} color={'orange.300'} />
@@ -128,12 +117,11 @@ function App() {
                                     </Heading>
                                     <Text fontSize={{ base: "md", md: "lg" }} color={'gray.500'}>
                                         На жаль, ми не можемо знайти сторінку, яку ви шукаєте.
-                                        Можливо, її було переміщено або видалено.
                                     </Text>
                                     <Button
                                         as={RouterLink}
                                         to="/trauma-journal"
-                                        colorScheme="red" // Змінив колір для відповідності до стилю
+                                        colorScheme="brand.primary" // Використовуємо колір з теми
                                         variant="solid"
                                         mt={6}
                                         size="lg"
