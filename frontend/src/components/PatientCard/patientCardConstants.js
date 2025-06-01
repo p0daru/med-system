@@ -1,191 +1,140 @@
-// src/constants/formConstants.js
+// frontend/src/components/PatientCard/patientCardConstants.js
 
-// Об'єкт, що містить всі константи форми
-export const constants = {
-
-    // --- Списки Опцій ---
-
-    // Для PatientDataSection
-    genders: ['Чоловіча', 'Жіноча'],
-    categories: ['Цивільний', 'Військовослужбовець', 'Полонений', 'Інше'],
-    militaryRanks: ["", "Солдат", "Старший солдат", "Молодший сержант", /* ... інші ... */ "Генерал"], // Додано "" для плейсхолдера Select
-    allergyOptions: ['Ні', 'Невідомо', 'Так'],
-    commonAllergens: [ // Для підказки або вибору
-      "",
-      "Пеніцилін",
-      "Сульфаніламіди",
-      "Аспірин (НПЗЗ)",
-      "Опіоїди (напр., Морфін)",
-      "Йод (контраст)",
-      "Латекс",
-      "Продукти харчування (вкажіть)",
-      "Укуси комах",
-      "Пилок",
-      "Інше (вкажіть)",
-    ],
-    transportTypes: ["", 'Casevac', 'MMPM', 'Medevac'], // Додано "" для плейсхолдера Select
-    medicalRoles: ["", 'Роль 1', 'Роль 2', 'Роль 3', 'Роль 4'], // Додано "" для плейсхолдера Select
+const constants = {
+    marchSurveyFields: {
+    massiveHemorrhageControl: "M - Massive Hemorrhage (Контроль)",
+    airwayManagement: "A - Airway (Забезпечення ДШ)",
+    breathingAssessment: "R - Respiration (Оцінка дихання)",
+    circulationAssessment: "C - Circulation (Оцінка кровообігу)",
+    hypothermiaPreventionHeadInjury: "H - Hypothermia / Head Injury (Гіпотермія, ЧМТ)",
+},
+marchPlaceholders: {
+    massiveHemorrhageControl: "Джерела та методи контролю масивної кровотечі...",
+    // ... інші плейсхолдери
+},
+marchRequiredFields: [ // Масив ключів, які є обов'язковими
+    'massiveHemorrhageControl',
+    'airwayManagement',
+    'breathingAssessment',
+    'circulationAssessment',
+    'hypothermiaPreventionHeadInjury',
+],
+    // --- ОПЦІЇ ДЛЯ ВИПАДАЮЧИХ СПИСКІВ ТА РАДІО-КНОПОК ---
+    genders: ['Чоловіча', 'Жіноча', 'Невідомо'], // Додано
     triageCategories: [
-        "", // Для плейсхолдера Select
-        'T1 / Негайна (Червоний)',
-        'T2 / Відстрочена (Жовтий)',
-        'T3 / Мінімальна (Зелений)',
-        'T4 / Очікувальна (Синій)',
+        'Червоний (I - Невідкладний)',
+        'Жовтий (II - Терміновий)',
+        'Зелений (III - Нетерміновий/Відкладений)',
+        'Чорний (IV - Померлий/Агонуючий)',
     ],
-    branchesOfService: [ // Роди військ/Сили
-      "",
-      "Сухопутні війська",
-      "Повітряні Сили",
-      "Військово-Морські Сили",
-      "Десантно-штурмові війська",
-      "Сили спеціальних операцій",
-      "Сили територіальної оборони",
-      "Війська зв'язку та кібербезпеки",
-      "Сили логістики",
-      "Сили підтримки",
-      "Медичні сили",
-      "Військова служба правопорядку",
-      "Державна спеціальна служба транспорту",
-      "Національна гвардія України",
-      "Державна прикордонна служба України",
-      "Служба безпеки України (ЦСО 'А')",
-      "Головне управління розвідки МОУ",
-      "Інше",
+    airwayManagementOptions: [
+        'Дихальні шляхи вільні, прохідні',
+        'Потрійний прийом Сафара',
+        'Аспірація вмісту ротоглотки',
+        'Орофарингеальний повітровід (OPA)',
+        'Назофарингеальний повітровід (NPA)',
+        'Надгортанний повітровід (LMA/iGel/Комбітюб)',
+        'Ендотрахеальна інтубація (ETT)',
+        'Конікотомія / Крікотиреотомія',
+        'Видалення стороннього тіла',
+    ],
+    bodyParts: [
+        'Голова', 'Обличчя', 'Шия',
+        'Грудна клітка (Права сторона)', 'Грудна клітка (Ліва сторона)', 'Грудна клітка (Середина)',
+        'Живіт (Верхній правий квадрант)', 'Живіт (Верхній лівий квадрант)',
+        'Живіт (Нижній правий квадрант)', 'Живіт (Нижній лівий квадрант)',
+        'Спина (Верхня частина)', 'Спина (Нижня частина)', 'Таз',
+        'Права верхня кінцівка (Плече)', 'Права верхня кінцівка (Передпліччя)', 'Права верхня кінцівка (Кисть)',
+        'Ліва верхня кінцівка (Плече)', 'Ліва верхня кінцівка (Передпліччя)', 'Ліва верхня кінцівка (Кисть)',
+        'Права нижня кінцівка (Стегно)', 'Права нижня кінцівка (Гомілка)', 'Права нижня кінцівка (Стопа)',
+        'Ліва нижня кінцівка (Стегно)', 'Ліва нижня кінцівка (Гомілка)', 'Ліва нижня кінцівка (Стопа)',
+        'Множинні ділянки',
+    ],
+    injuryTypes: [
+        'Рана (рвана/різана/колота)', 'Забій/Гематома', 'Опік (термічний/хімічний)',
+        'Перелом (закритий)', 'Перелом (відкритий)', 'Вивих/Розтягнення',
+        'Ампутація (травматична)', 'Стороннє тіло', 'Вогнепальне поранення', 'Вибухова травма (осколки)',
+        'Інше',
+    ],
+    interventionTypes: [
+        'Огляд та оцінка стану',
+        'Контроль масивної кровотечі (джгут/турнікет)',
+        'Контроль масивної кровотечі (тиснуча пов\'язка)',
+        'Контроль масивної кровотечі (тампонада)',
+        'Забезпечення прохідності дихальних шляхів (ручне)',
+        'Забезпечення прохідності дихальних шляхів (повітровід OPA/NPA)',
+        'Інтубація трахеї / Надгортанний повітровід',
+        'Голкова декомпресія (пневмоторакс)',
+        'Оклюзійна пов\'язка (відкритий пневмоторакс)',
+        'Внутрішньовенний доступ (периферичний)',
+        'Внутрішньокістковий доступ',
+        'Інфузійна терапія (розчин, об\'єм)',
+        'Знеболення (медикаментозне)',
+        'Іммобілізація (шини/комір/дошка)',
+        'Протишокові заходи (запобігання гіпотермії)',
+        'Серцево-легенева реанімація (СЛР)',
+    ],
+    medicationUnits: ['мг', 'мл', 'мкг', 'од'],
+    medicationRoutes: ['в/в', 'в/м', 'п/ш', 'ІН (інтраназально)', 'в/к', 'п/о (перорально)'],
+    transportModes: ['ЕМД (Автомобіль)', 'ДСНС (Автомобіль)', 'Авіа (Гелікоптер)', 'Інше'],
+    patientOutcomePreHospital: [
+        'Госпіталізовано', 'Передано іншій бригаді', 'Відмова від госпіталізації', 'Смерть на місці', 'Смерть під час транспортування'
     ],
 
-    // Для PriorAidSection
-    priorAid: { // Групуємо константи PriorAid для кращої організації
-        aidProviders: ['ОСД', 'НП', 'МедП', 'Невідомо', 'Не надавалась'],
-        medicationRoutes: [
-          "",
-          "PO (Перорально)",
-          "IV (Внутрішньовенно)",
-          "IM (Внутрішньом'язово)",
-          "IN (Інтраназально)",
-          "IO (Внутрішньокістково)",
-          "PR (Ректально)",
-          "SC/SubQ (Підшкірно)", // Об'єднано
-          "Transbucal (Трансбукально)",
-          "Sublingual (Сублінгвально)",
-          "Інший"
-        ],
-        tourniquetLimbKeys: [
-            { key: 'rightUpperLimb', label: 'ПВК' },
-            { key: 'leftUpperLimb', label: 'ЛВК' },
-            { key: 'rightLowerLimb', label: 'ПНК' },
-            { key: 'leftLowerLimb', label: 'ЛНК' },
-        ],
-        // Ключі медикаментів для циклів та логіки
-        medicationKeys: ['pillPack', 'tranexamicAcid', 'analgesic', 'antibiotic'],
+    // --- ШАБЛОНИ ДЛЯ ДИНАМІЧНИХ МАСИВІВ ---
+    vitalSignTemplate: {
+        timestamp: '', sbp: '', dbp: '', hr: '', rr: '', spo2: '',
+        gcsE: '', gcsV: '', gcsM: '', gcsTotal: '', tempC: '', painScore: '',
     },
+    injuryTemplate: { bodyPart: '', typeOfInjury: '', description: '' },
+    interventionTemplate: { type: '', timestamp: '', details: '' },
+    medicationTemplate: { name: '', dose: '', unit: '', route: '', timestamp: '' },
 
-    // Інші списки (можуть знадобитися для майбутніх секцій або розширень)
-    mechanismsOfInjury: [
-        "",
-        "Артобстріл",
-        "Тупа травма",
-        "Опік",
-        "Падіння з висоти",
-        "Граната",
-        "Вогнепальна рана",
-        "СВП (Саморобний вибуховий пристрій)",
-        "Протипіхотна міна",
-        "ДТП",
-        "РПГ",
-        "Інше",
-    ],
-    hypothermiaPreventionTypes: [
-        "",
-        "Пасивне (Ковдра/Термо/Рятувальна)", // Об'єднано
-        "Активне (Зовнішнє тепло)",
-        "Активне + Пасивне",
-        "Інше...",
-    ],
-    dosageUnits: ["", "мг", "мкг", "мл", "г", "од", "таб"],
-    commonFluids: [
-        "",
-        "Фіз. розчин (NaCl 0.9%)",
-        "Розчин Рінгера Лактат", // Уточнено
-        "ГЕК (Гідроксиетилкрохмаль)",
-        "Плазма",
-        "Еритроцитарна маса",
-        "Цільна кров",
-        "Інше...",
-    ],
-    fluidRoutes: [
-        "",
-        "IV (Внутрішньовенно)",
-        "IO (Внутрішньокістково)",
-        // "PO (Перорально)", // Прибрано як менш релевантне для інфузій
-        // "PR (Ректально)",  // Прибрано як менш релевантне
-    ],
-    evacuationPriorities: ["", "Невідкладна", "Пріоритетна", "Звичайна"],
-    tourniquetTypes: [
-        "", "CAT", "SOFTT-W", "SAM XT", "TMT", "SICH",
-        "Джгут Есмарха", "Імпровізований", "Невідомо", "Інше"
-    ],
-    commonMedications: [ // Список для підказок
-        "", "TXA (Транексамова к-та)", "Meloxicam", "Moxifloxacin", "Ertapenem",
-        "Ketamine", "Fentanyl", "Nalbuphine", "Ondansetron", "Цефтріаксон",
-        "Парацетамол", "Морфін", "Налоксон", "Антибіотик (загальний)", "Інше..."
-    ],
-
-
-    // --- Початковий Стан Форми ---
-    initialPriorAidState: {
-        aidTime: '',
-        aidDate: '',
-        aidProvider: '',
-        vitalSigns: { respiratoryRate: '', spo2: '', pulse: '', bloodPressure: '', avpu: '', painScale: '' },
-        interventions: { bandage: false, tamponade: false, o2: false, oropharyngealAirway: false, nasopharyngealAirway: false, supraglotticAirway: false, endotrachealTube: false, cricothyrotomy: false, bagValveMask: false, needleDecompression: false, occlusiveDressing: false, ivAccess: false, ioAccess: false, hypothermiaPrevention: false, immobilization: false, eyeShield: false, otherIntervention: false, otherInterventionDetails: '' },
-        tourniquets: {
-            rightUpperLimb: { appliedTime: '', removedTime: '', convertedTime: '', relocatedTime: '' },
-            leftUpperLimb:  { appliedTime: '', removedTime: '', convertedTime: '', relocatedTime: '' },
-            rightLowerLimb: { appliedTime: '', removedTime: '', convertedTime: '', relocatedTime: '' },
-            leftLowerLimb:  { appliedTime: '', removedTime: '', convertedTime: '', relocatedTime: '' },
-            abdominalTourniquet: { appliedTime: '', removedTime: '' },
-            junctionalTourniquet: { appliedTime: '', removedTime: '' },
+    // --- ПОЧАТКОВА СТРУКТУРА ДАНИХ ДЛЯ ФОРМИ ДОГОСПІТАЛЬНОГО ЕТАПУ ---
+    initialPreHospitalFormData: {
+        internalCardId: `PH-${Date.now().toString(36).toUpperCase()}`, // Внутрішній ID картки, не пацієнта
+        incidentDateTime: '',
+        reasonForCall: '',
+        
+        // Дані пацієнта (мінімум для ДЕ)
+        patientInfo: {
+            isUnknown: false,
+            tempPatientId: '', // Якщо невідомий, або для зв'язку
+            lastName: '',
+            firstName: '',
+            middleName: '', // По-батькові (опціонально)
+            dateOfBirth: '', // YYYY-MM-DD (якщо відомо)
+            ageYears: '', // Орієнтовний вік (якщо ДН невідома)
+            gender: '', // З constants.genders
+            contactPhone: '', // Телефон пацієнта або контактної особи
+            addressRough: '', // Орієнтовна адреса або звідки (якщо не місце інциденту)
+            allergiesShort: '', // Коротко про відомі критичні алергії
+            medicationsShort: '', // Коротко про важливі прийомні ліки
+            medicalHistoryShort: '', // Коротко про значущі захворювання (діабет, серцеві тощо)
         },
-        medications: {
-            pillPack:       { given: false, details: { dose: '', route: '', time: '' } },
-            tranexamicAcid: { given: false, details: { dose: '', route: '', time: '' } },
-            analgesic:      { given: false, details: { dose: '', route: '', time: '' } },
-            antibiotic:     { given: false, details: { dose: '', route: '', time: '' } },
-        },
-        medicationNotes: '',
-    },
 
-    get initialFormData() { // Використовуємо getter для доступу до initialPriorAidState
-      return {
-        // Розділ 1
-        isUnknown: false,
-        gender: '',
-        category: '',
-        fullName: '',
-        dob: '',
-        militaryId: '',
-        militaryRank: '',
-        militaryUnit: '',
-        allergyPresence: '',
-        allergyDetails: '',
-        eventDate: '',
-        eventTime: '',
-        arrivalDate: '',
-        arrivalTime: '',
-        transportType: '',
-        originType: 'location',
-        arrivalLocationName: '',
-        medicalUnitName: '',
-        medicalRole: '',
+        teamArrivalTimeScene: '',
+        patientContactTime: '',
+        complaints: '', // Скарги зі слів пацієнта/свідків (перенесено сюди для логіки)
+
         triageCategory: '',
-        // Розділ 2
-        priorAid: this.priorAid.initialState, // Посилання на початковий стан priorAid
-      };
-    },
+        triageTimestamp: '',
 
-    // --- Інші Константи ---
-    API_ENDPOINT: '/api/casualty-cards', // Замініть на ваш реальний ендпоінт
-}
+        marchSurvey: {
+            massiveHemorrhageControl: '', airwayManagement: '', breathingAssessment: '',
+            circulationAssessment: '', hypothermiaPreventionHeadInjury: '',
+        },
+        vitalSignsLog: [],
+        suspectedInjuries: [],
+        interventionsPerformed: [],
+        medicationsAdministered: [],
+        transportation: {
+            destinationFacilityName: '', transportMode: '',
+            departureTimeFromScene: '', patientConditionDuringTransport: '',
+        },
+        outcomePreHospital: '',
+        notes: '',
+    }
+};
 
-// Експортуємо весь об'єкт constants за замовчуванням
 export default constants;
