@@ -90,7 +90,7 @@ function Sidebar({ isOpen, onClose, display, isDrawer = false, ...rest }) {
                 </Box>
 
                 <NavItem icon={TimeIcon} to="/trauma-journal" onClose={onClose}>
-                    Журнал Карт
+                    Журнал Пацієнтів
                 </NavItem>
                 {/* 
                 Приклад, якщо додати створення картки прямо з сайдбару,
