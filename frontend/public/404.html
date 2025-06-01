@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Page Not Found - Redirecting...</title>
+<script type="text/javascript">
+    
+const basePath = '/med-system';
+const l = window.location;
+const ss = window.sessionStorage;
+
+// Зберігаємо оригінальний шлях, запит та хеш в sessionStorage
+// Це робиться для того, щоб після перенаправлення на index.html, наш SPA роутер
+// міг відновити оригінальний шлях.
+// Замість ?/ в URL, ми будемо використовувати sessionStorage.
+// GitHub Pages перенаправить на /basePath/404.html, а потім цей скрипт 
+// перенаправить на /basePath/index.html (або просто /basePath/), 
+// зберігши шлях у sessionStorage.
+
+// Отримуємо шлях відносно basePath
+let relativePath = l.pathname;
+if (basePath && relativePath.startsWith(basePath + '/')) {
+  relativePath = relativePath.substring(basePath.length);
+} else if (basePath && relativePath === basePath) {
+  relativePath = '/'; // Якщо це сам basePath, вважаємо коренем SPA
+}
+// Якщо basePath порожній, relativePath і так буде коректним
+
+// Зберігаємо повний шлях для відновлення (без basePath, але з початковим слешем, якщо він є)
+// Наприклад, якщо був /med-system/patients/123?tab=details#info
+// то зберігаємо /patients/123?tab=details#info
+const fullPathToRestore = (relativePath.startsWith('/') ? '' : '/') + relativePath + l.search + l.hash;
+ss.setItem('ghPages_redirect_path', fullPathToRestore);
+
+// Перенаправляємо на корінь нашого SPA (з урахуванням basePath)
+// GitHub Pages має віддати index.html за цим шляхом
+window.location.replace(basePath + '/');
+</script>
+</head>
+<body>
+<p>If you are not redirected automatically, please <a id="redirect-link" href="#">click here to go to the homepage</a>.</p>
+<script type="text/javascript">
+// Оновлюємо посилання для ручного переходу
+document.getElementById('redirect-link').href = basePath + '/';
+</script>
+</body>
+</html>
