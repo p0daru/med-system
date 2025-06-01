@@ -9,6 +9,7 @@ const getCurrentDateTimeLocal = () => {
     return now.toISOString().slice(0, 16);
 };
 
+
 export const getPreHospitalTestData = (existingInternalCardId = null, existingTempPatientId = null) => {
     const isEditMode = !!existingInternalCardId; // Якщо передано ID, припускаємо режим редагування для ID
     const internalCardId = existingInternalCardId || `TEST-CARD-${Date.now().toString(36).toUpperCase()}`;
