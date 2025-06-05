@@ -3,7 +3,7 @@
 export const GENDER_OPTIONS = [
   { value: 'male', label: 'Чоловіча' },
   { value: 'female', label: 'Жіноча' },
-  { value: 'other', label: 'Інша' },
+//   { value: 'other', label: 'Інша' },
   { value: 'unknown', label: 'Невідомо / Не вказано' },
 ];
 
@@ -225,7 +225,7 @@ export const TRAUMA_TYPE_OPTIONS = [ // Для поля "Тип травми" в
 ];
 
 // Інші константи
-export const TRANSPORTATION_METHOD_OPTIONS = [ // ... (без змін)
+export const TRANSPORTATION_METHOD_OPTIONS = [ 
   { value: 'emd_c', label: 'Автомобіль ЕМД (клас C)' },
   { value: 'emd_b', label: 'Автомобіль ЕМД (клас B)' },
   { value: 'emd_other', label: 'Автомобіль ЕМД (інший)' },
@@ -239,7 +239,7 @@ export const TRANSPORTATION_METHOD_OPTIONS = [ // ... (без змін)
   { value: 'not_transported', label: 'Не транспортувався / Відмова від транспортування' },
 ];
 
-export const TRIAGE_CATEGORIES_OPTIONS = [ // ... (без змін)
+export const TRIAGE_CATEGORIES_OPTIONS = [ 
   { value: 'green', label: 'I (Незначні / Зелений)', color: 'green.500' },
   { value: 'yellow', label: 'II (Відстрочені / Жовтий)', color: 'yellow.500' },
   { value: 'red', label: 'III (Невідкладні / Червоний)', color: 'red.500' },
@@ -247,7 +247,7 @@ export const TRIAGE_CATEGORIES_OPTIONS = [ // ... (без змін)
   { value: 'unknown', label: 'Не визначено', color: 'gray.500' },
 ];
 
-export const EFFECTIVENESS_OPTIONS = [ // ... (без змін)
+export const EFFECTIVENESS_OPTIONS = [ 
     { value: 'effective', label: 'Ефективно' },
     { value: 'partially_effective', label: 'Частково ефективно' },
     { value: 'not_effective', label: 'Не ефективно' },
@@ -289,7 +289,7 @@ export const MEDICATION_ROUTE_OPTIONS = [
     { value: 'other', label: 'Інший' },
 ];
 
-export const COMMON_PREHOSPITAL_MEDICATIONS = [ // Приклад автодоповнення
+export const COMMON_PREHOSPITAL_MEDICATIONS = [ 
     "Адреналін (Епінефрин)", "Аміодарон", "Атропін", "Ацетилсаліцилова кислота (Аспірин)",
     "Гепарин", "Глюкоза 40%", "Дексаметазон", "Діазепам (Сибазон)", "Димедрол",
     "Допамін", "Ібупрофен", "Кеторолак (Кетанов)", "Кислота транексамова", "Клопідогрель",
@@ -299,7 +299,7 @@ export const COMMON_PREHOSPITAL_MEDICATIONS = [ // Приклад автодоп
     "Фентаніл", "Фуросемід (Лазикс)", "Цефтріаксон", "Анальгін (Метамізол натрію)",
 ];
 
-export const COMMON_PREHOSPITAL_PROCEDURES = [ // Приклад автодоповнення
+export const COMMON_PREHOSPITAL_PROCEDURES = [ 
     "Зупинка зовнішньої кровотечі (джгут, тиснуча пов'язка)", "Іммобілізація шийна/кінцівок",
     "В/в доступ (периферичний катетер)", "В/к доступ", "Інфузійна терапія",
     "Оксигенотерапія (маска, канюлі)", "Небулайзерна терапія", "Промивання шлунка",
@@ -314,27 +314,27 @@ export const COMMON_PREHOSPITAL_PROCEDURES = [ // Приклад автодоп�
 
 export const INITIAL_PRE_HOSPITAL_FORM_DATA = {
   cardId: '',
+  
+  // Секція 1: Загальна інформація, пацієнт, місце події (ЗАЛИШАЄМО)
   incidentDateTime: '', 
   arrivalDateTime: '', 
-  sceneType: '', 
-  sceneTypeOther: '', // Для "Інше" в типі місця події
+  sceneTypeValue: '', 
+  sceneTypeOther: '', 
   patientFullName: '', 
   patientGender: '', 
   patientDateOfBirth: '', 
   patientApproximateAge: '', 
-  
   catastrophicHemorrhageControlled: false, 
-  catastrophicHemorrhageDetails: '', 
+  catastrophicHemorrhageDetails: '',  
 
-  consciousnessLevel: '', 
+  // Секція 2: Оцінка стану (ABCDE) 
+  // consciousnessLevel: '', // Якщо це поле для AVPU і не використовується напряму, можна прибрати
   airwayStatus: '', 
-  
   breathingRate: '', 
   breathingSaturation: '', 
   breathingQuality: '',
   chestExcursion: '', 
   auscultationLungs: '', 
-  
   pulseRate: '', 
   pulseQuality: '',
   pulseLocation: '', 
@@ -343,16 +343,18 @@ export const INITIAL_PRE_HOSPITAL_FORM_DATA = {
   capillaryRefillTime: '', 
   skinStatus: '',
   externalBleeding: '', 
-
   glasgowComaScaleEye: '', 
   glasgowComaScaleVerbal: '', 
   glasgowComaScaleMotor: '', 
+  // gcsTotal розраховується, не ініціалізується тут
   pupilReaction: '',
   motorSensoryStatus: '', 
-
+  neurologicalStatusDetails: '', // Додаткові неврол. знахідки
   bodyTemperature: '', 
-  exposureDetails: '', 
+//   exposureDetails: '', // Виявлені ушкодження / Огляд
 
+  /* --- Секція 3: Скарги, Анамнез (SAMPLE), Обставини --- */
+  /*
   complaints: '', 
   allergies: '', 
   medicationsTaken: '', 
@@ -361,19 +363,21 @@ export const INITIAL_PRE_HOSPITAL_FORM_DATA = {
   lastOralIntakeTime: '', 
   eventsLeadingToInjury: '', 
   mechanismOfInjuryDetailed: '', 
+  */
 
-  medicationsAdministered: [{ name: '', customName: '', dosage: '', route: '', customRoute: '', time: '', effectiveness: '' }],
-  proceduresPerformed: [{ name: '', customName: '', time: '', details: '', effectiveness: '' }],
+  // Секція 4
+  medicationsAdministered: [], // За замовчуванням порожній масив, якщо секція видима
+  proceduresPerformed: [],   // За замовчуванням порожній масив, якщо секція видима
   ivAccessDetails: '', 
 
+  // Секція 5
   transportationMethod: '', 
   transportationOtherDetails: '', 
   destinationFacility: '', 
-  // Поля часу транспортування та передачі прибрані
 
+  // Секція 6
   triageCategory: '', 
-  // rtsScore: '', // Прибрано
-  additionalNotes: '', 
-  // medicalTeamMembers: '', // Прибрано
+  rtsScore: 'Н/Д',
+//   additionalNotes: '', 
   medicalTeamResponsible: '', 
 };

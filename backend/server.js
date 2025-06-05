@@ -7,6 +7,7 @@ const cors = require('cors');
 
 // маршрути 
 const traumaRecordApiRoutes = require('./routes/traumaRecord.api.routes');
+const authRoutes = require('./routes/auth.routes');
 
 // Ініціалізація Express додатку
 const app = express();
@@ -69,7 +70,7 @@ app.use(cors({
     credentials: true
 }));
 
-app.use(express.json()); // Дозволяємо серверу розуміти JSON
+app.use(express.json());
 
 // Підключення до MongoDB
 const mongoUri = process.env.MONGODB_URI;
@@ -91,6 +92,7 @@ app.get('/', (req, res) => {
 });
 
 // Основні маршрути API
+app.use('/api/auth', authRoutes);
 app.use('/api/trauma-records', traumaRecordApiRoutes);
 
 // Централізований обробник помилок
