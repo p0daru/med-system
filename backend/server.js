@@ -35,24 +35,23 @@ app.use(cors({
         const allowedUrlsForLogging = allowedOriginsConfig.map(c => c.url);
         console.log(`CORS Check - Configured Allowed Origins: ${allowedUrlsForLogging.join(', ')}`);
 
-        if (!origin && process.env.NODE_ENV !== 'production') {
-            console.log("CORS Check: Allowed (no origin, development mode)");
+        if (!origin) {
+            console.log("CORS Check: Allowed (request without origin)");
             return callback(null, true);
         }
 
         let isAllowed = false;
-        if (origin) {
-            for (const config of allowedOriginsConfig) {
-                if (config.exactMatch) {
-                    if (origin === config.url) {
-                        isAllowed = true;
-                        break;
-                    }
-                } else { // startsWith для dev
-                    if (origin.startsWith(config.url)) {
-                        isAllowed = true;
-                        break;
-                    }
+        // Перебираємо дозволені origins
+        for (const config of allowedOriginsConfig) {
+            if (config.exactMatch) {
+                if (origin === config.url) {
+                    isAllowed = true;
+                    break;
+                }
+            } else { // startsWith для dev
+                if (origin.startsWith(config.url)) {
+                    isAllowed = true;
+                    break;
                 }
             }
         }
