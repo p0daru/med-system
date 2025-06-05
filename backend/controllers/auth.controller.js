@@ -1,17 +1,9 @@
 // backend/controllers/auth.controller.js
-console.log('--- Importing User model in auth.controller.js ---');
 const User = require('../models/User.model');
-console.log('Imported User in controller:', User); // Подивіться, що тут буде виведено
-if (User) {
-    console.log('Is imported User a constructor?', typeof User === 'function'); // МАЄ БУТИ TRUE
-}
-
-
 const jwt = require('jsonwebtoken');
 
 // Функція для створення токену
 const generateToken = (id) => {
-    // Ключ береться з .env файлу
     return jwt.sign({ id }, process.env.JWT_SECRET, {
         expiresIn: '30d'
     });
@@ -22,6 +14,10 @@ exports.registerUser = async (req, res) => {
     const { username, password } = req.body;
 
     try {
+        if (!username || !password) {
+            return res.status(400).json({ message: 'Ім\'я користувача та пароль є обов\'язковими' });
+        }
+
         const userExists = await User.findOne({ username });
 
         if (userExists) {
@@ -33,7 +29,6 @@ exports.registerUser = async (req, res) => {
             password
         });
 
-        // Не відправляємо пароль назад, навіть хешований
         res.status(201).json({
             message: 'Користувач успішно зареєстрований',
             user: {
@@ -43,6 +38,7 @@ exports.registerUser = async (req, res) => {
         });
 
     } catch (error) {
+        console.error("Server error during registration:", error);
         res.status(500).json({ message: 'Помилка сервера при реєстрації', error: error.message });
     }
 };
@@ -52,20 +48,24 @@ exports.loginUser = async (req, res) => {
     const { username, password } = req.body;
 
     try {
+        if (!username || !password) {
+            return res.status(400).json({ message: 'Ім\'я користувача та пароль є обов\'язковими' });
+        }
+
         const user = await User.findOne({ username });
 
-        // Перевіряємо чи є користувач, і чи правильний пароль
         if (user && (await user.comparePassword(password))) {
             res.json({
                 _id: user._id,
                 username: user.username,
                 role: user.role,
-                token: generateToken(user._id) // Віддаємо наш "пропуск"
+                token: generateToken(user._id)
             });
         } else {
             res.status(401).json({ message: 'Невірне ім`я користувача або пароль' });
         }
     } catch (error) {
+        console.error("Server error during login:", error);
         res.status(500).json({ message: 'Помилка сервера при вході', error: error.message });
     }
 };
