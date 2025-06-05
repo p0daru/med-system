@@ -11,15 +11,35 @@ const apiClient = axios.create({
 });
 
 // Інтерсептор для токену, якщо потрібен
-// apiClient.interceptors.request.use(config => {
-//   const token = localStorage.getItem('authToken');
-//   if (token) {
-//     config.headers.Authorization = `Bearer ${token}`;
-//   }
-//   return config;
-// }, error => {
-//   return Promise.reject(error);
-// });
+apiClient.interceptors.request.use(config => {
+  // Дістаємо дані про користувача з localStorage (ми їх туди збережемо після логіну)
+  const userInfo = JSON.parse(localStorage.getItem('userInfo'));
+  
+  if (userInfo && userInfo.token) {
+    // Якщо токен є, додаємо його в заголовок Authorization
+    config.headers.Authorization = `Bearer ${userInfo.token}`;
+  }
+  return config;
+}, error => {
+  return Promise.reject(error);
+});
+
+// === НОВІ ФУНКЦІЇ ДЛЯ АВТЕНТИФІКАЦІЇ ===
+/**
+ * Реєструє нового користувача.
+ * @param {object} userData - { username, password }.
+ */
+export const register = (userData) => {
+    return apiClient.post('/api/auth/register', userData);
+};
+
+/**
+ * Авторизує користувача.
+ * @param {object} credentials - { username, password }.
+ */
+export const login = (credentials) => {
+    return apiClient.post('/api/auth/login', credentials);
+};
 
 /**
  * Створює новий запис про травму.
