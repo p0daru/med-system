@@ -18,6 +18,13 @@ router.route('/')
         traumaRecordController.createPreHospitalRecord // <-- ВИПРАВЛЕНО
     );
 
+// Роут для пакетного отримання деталей
+router.post(
+    '/batch-details', // Шлях буде /api/trauma-records/batch-details
+    protect, // Всі залогінені користувачі можуть запитувати деталі
+    traumaRecordController.getTraumaRecordsByIds
+);
+
 // Роут для /api/trauma-records/:id
 router.route('/:id')
     // Отримати конкретний запис можуть всі залогінені

@@ -336,34 +336,31 @@ const PreHospitalCareSection = ({ recordIdToEdit, onSave, onCancel }) => {
   
   // --- Обробники кнопок дій ---
   const handleLoadTestData = useCallback(() => {
+    // Генеруємо один випадковий, але повний об'єкт даних
     const testData = generatePreHospitalTestData();
+    
+    // Зберігаємо поточний ID картки, щоб не перезаписувати його
     const currentCardId = isEditing ? formData.cardId : initialCreateCardIdRef.current;
 
-    let newFormData = {
-      ...JSON.parse(JSON.stringify(INITIAL_PRE_HOSPITAL_FORM_DATA)),
-      ...testData,
-      cardId: currentCardId || generateClientSideId(), // Використовуємо існуючий або генеруємо новий
+    // Формуємо новий стан, поєднуючи тестові дані зі збереженим ID
+    const newFormData = {
+      ...testData, // Розгортаємо згенеровані дані
+      cardId: currentCardId,
+      _id: isEditing ? recordIdToEdit : undefined,
     };
 
-    if (isEditing && recordIdToEdit) {
-        newFormData._id = recordIdToEdit;
-    } else {
-        delete newFormData._id;
-    }
-    
-    // Ініціалізація кастомних станів на основі тестових даних
-    // (код як у попередньому прикладі, але враховуємо newFormData)
-    if (newFormData.breathingRate && !BREATHING_RATE_OPTIONS.find(o=>o.value===newFormData.breathingRate)) {setBreathingRateCustom(newFormData.breathingRate); newFormData.breathingRate='custom';} else {setBreathingRateCustom('');}
-    if (newFormData.breathingSaturation && !OXYGEN_SATURATION_OPTIONS.find(o=>o.value===newFormData.breathingSaturation)) {setBreathingSaturationCustom(newFormData.breathingSaturation); newFormData.breathingSaturation='custom';} else {setBreathingSaturationCustom('');}
-    if (newFormData.pulseRate && !PULSE_RATE_OPTIONS.find(o=>o.value===newFormData.pulseRate)) {setPulseRateCustom(newFormData.pulseRate); newFormData.pulseRate='custom';} else {setPulseRateCustom('');}
-    if (newFormData.bodyTemperature && !BODY_TEMPERATURE_OPTIONS.find(o=>o.value===newFormData.bodyTemperature)) {setBodyTemperatureCustom(newFormData.bodyTemperature); newFormData.bodyTemperature='custom';} else {setBodyTemperatureCustom('');}
-    if (newFormData.sceneTypeValue && !SCENE_TYPE_OPTIONS.find(o=>o.value===newFormData.sceneTypeValue)) {newFormData.sceneTypeOther = newFormData.sceneTypeValue; newFormData.sceneTypeValue = 'other';} else if (newFormData.sceneTypeValue !== 'other') {newFormData.sceneTypeOther = '';}
-    newFormData.medicationsAdministered = (newFormData.medicationsAdministered || []).map(med => ({ ...med, customName: (!COMMON_PREHOSPITAL_MEDICATIONS.includes(med.name) && med.name !== 'custom_entry' && med.name) ? med.name : (med.customName || ''), name: (!COMMON_PREHOSPITAL_MEDICATIONS.includes(med.name) && med.name !== 'custom_entry' && med.name) ? 'custom_entry' : (med.name || ''), customRoute: (!MEDICATION_ROUTE_OPTIONS.some(o=>o.value===med.route) && med.route !== 'custom_entry' && med.route) ? med.route : (med.customRoute || ''), route: (!MEDICATION_ROUTE_OPTIONS.some(o=>o.value===med.route) && med.route !== 'custom_entry' && med.route) ? 'custom_entry' : (med.route || ''), }));
-    newFormData.proceduresPerformed = (newFormData.proceduresPerformed || []).map(proc => ({ ...proc, customName: (!COMMON_PREHOSPITAL_PROCEDURES.includes(proc.name) && proc.name !== 'custom_entry' && proc.name) ? proc.name : (proc.customName || ''), name: (!COMMON_PREHOSPITAL_PROCEDURES.includes(proc.name) && proc.name !== 'custom_entry' && proc.name) ? 'custom_entry' : (proc.name || ''), }));
-
+    // Оновлюємо стан форми
     setFormData(newFormData);
-    toast({ title: "Тестові дані завантажено", status: "info", duration: 3000, isClosable: true, position: "top-right" });
-  }, [isEditing, recordIdToEdit, formData.cardId, toast]); // Додано formData.cardId для доступу до поточного ID в режимі редагування
+
+    toast({
+        title: "Тестові дані завантажено!",
+        description: `Сценарій: "${testData.exposureDetails}"`,
+        status: "info",
+        duration: 4000,
+        isClosable: true,
+        position: "top-right"
+    });
+}, [isEditing, recordIdToEdit, formData.cardId, toast]);
 
   const handleClearForm = useCallback(() => {
     const currentCardId = isEditing ? formData.cardId : initialCreateCardIdRef.current;

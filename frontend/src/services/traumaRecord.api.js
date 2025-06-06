@@ -93,6 +93,19 @@ export const getAllTraumaRecords = () => {
 };
 
 /**
+ * Отримує повні дані для кількох записів за масивом їх ID.
+ * @param {string[]} ids - Масив рядків з MongoDB _id.
+ * @returns {Promise<import('axios').AxiosResponse<any>>}
+ */
+export const getMultipleTraumaRecordDetails = (ids) => {
+    if (!ids || ids.length === 0) {
+        // Повертаємо успішну відповідь з порожнім масивом, щоб не ламати логіку
+        return Promise.resolve({ data: [] });
+    }
+    return apiClient.post('/api/trauma-records/batch-details', { ids });
+};
+
+/**
  * Отримує один запис про травму за його ID (MongoDB _id).
  * @param {string} recordMongoId - ID запису в MongoDB (_id).
  * @returns {Promise<import('axios').AxiosResponse<any>>}
@@ -116,4 +129,15 @@ export const deleteTraumaRecord = (recordMongoId) => {
     }
     // Використовуємо :id в URL, як очікує бекенд
     return apiClient.delete(`/api/trauma-records/${recordMongoId}`);
+};
+
+/**
+ * Створює кілька записів про травми за один запит.
+ * @param {object[]} records - Масив об'єктів з даними карток.
+ * @returns {Promise<import('axios').AxiosResponse<any>>}
+ */
+export const createMultipleTraumaRecords = (records) => {
+    // Відправляємо POST-запит на спеціальний ендпоінт,
+    // передаючи масив записів у тілі.
+    return apiClient.post('/api/trauma-records/batch-create', { records });
 };
