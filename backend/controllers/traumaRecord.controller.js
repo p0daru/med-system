@@ -311,6 +311,39 @@ exports.getTraumaRecordById = async (req, res) => {
     }
 };
 
+// Отримати деталі кількох записів за їхніми ID (POST /api/trauma-records/batch-details)
+exports.getTraumaRecordsByIds = async (req, res) => {
+    try {
+        const { ids } = req.body; // Очікуємо масив ID в тілі запиту
+
+        // Валідація вхідних даних
+        if (!Array.isArray(ids) || ids.length === 0) {
+            return res.status(400).json({ message: 'Масив "ids" є обов\'язковим і не може бути порожнім.' });
+        }
+        
+        // Перевірка, чи всі ID валідні
+        const invalidIds = ids.filter(id => !mongoose.Types.ObjectId.isValid(id));
+        if (invalidIds.length > 0) {
+            return res.status(400).json({ message: `Наступні ID мають невірний формат: ${invalidIds.join(', ')}` });
+        }
+
+        // Запит до бази даних за допомогою оператора $in
+        const records = await TraumaRecord.find({
+            '_id': { $in: ids }
+        });
+
+        // Повертаємо знайдені записи (навіть якщо деякі не знайдено, повернемо порожній масив або частковий результат)
+        res.status(200).json(records);
+
+    } catch (error) {
+        console.error('Помилка отримання записів за масивом ID:', error);
+        res.status(500).json({
+            message: 'Помилка на сервері при отриманні деталей записів',
+            error: error.message
+        });
+    }
+};
+
 // Видалити запис за MongoDB _id (DELETE /api/trauma-records/:id)
 // Залишається без змін
 exports.deleteTraumaRecord = async (req, res) => {

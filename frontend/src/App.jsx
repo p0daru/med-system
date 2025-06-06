@@ -1,20 +1,18 @@
 // frontend/src/App.jsx
 
 import React, { useState } from 'react';
-import { Routes, Route, Navigate, Link as RouterLink, useParams } from 'react-router-dom';
+import { Routes, Route, Navigate, Link as RouterLink, useParams, useNavigate } from 'react-router-dom';
 import {
     ChakraProvider,
     Box,
     Flex,
     Heading,
     Text,
-    VStack,
-    Icon,
     IconButton,
     Button,
     useDisclosure,
 } from '@chakra-ui/react';
-import { HamburgerIcon, WarningIcon, CloseIcon } from '@chakra-ui/icons';
+import { HamburgerIcon, CloseIcon } from '@chakra-ui/icons';
 
 // Імпортуємо всі необхідні компоненти та сторінки
 import theme from './config/theme';
@@ -26,12 +24,12 @@ import PatientJournal from './components/PatientJournal/PatientJournal';
 import PatientRecordView from './components/PatientJournal/PatientRecordView';
 import PreHospitalCareSection from './components/PatientCard/PreHospitalCareSection.jsx';
 
-// --- Допоміжні компоненти (можна винести в окремі файли, але для повноти коду вони тут) ---
+// --- ДОПОМІЖНІ КОМПОНЕНТИ ---
 
 // Компонент-обгортка для сторінки створення/редагування картки
 const PreHospitalCareWrapper = () => {
     const { id } = useParams();
-    const navigate = useNavigate(); // Помилка була тут, navigate не було визначено
+    const navigate = useNavigate();
 
     const handleSaveSuccess = (savedRecord) => {
         if (savedRecord?._id) {
@@ -84,6 +82,7 @@ const MainAppLayout = ({ children, onLogout }) => {
             />
             <Box as="main" flex="1" w={{ base: '100%', md: `calc(100% - ${sidebarWidth})`}} overflowX="hidden">
                 <Flex
+                    as="header"
                     display={{ base: 'flex', md: 'none' }}
                     alignItems="center"
                     justifyContent="space-between"
@@ -98,7 +97,7 @@ const MainAppLayout = ({ children, onLogout }) => {
                 >
                     <RouterLink to="/trauma-journal">
                         <Heading size="md" color="brand.primary.500">
-                            TRAUMA RECORDS
+                            EMS Control
                         </Heading>
                     </RouterLink>
                     <IconButton
@@ -116,7 +115,7 @@ const MainAppLayout = ({ children, onLogout }) => {
     );
 };
 
-// --- Основний компонент App ---
+// --- ОСНОВНИЙ КОМПОНЕНТ APP ---
 
 function App() {
     const [isLoggedIn, setIsLoggedIn] = useState(() => {
@@ -124,21 +123,31 @@ function App() {
             const userInfo = localStorage.getItem('userInfo');
             return !!(userInfo && JSON.parse(userInfo).token);
         } catch {
+            localStorage.removeItem('userInfo');
             return false;
         }
     });
 
-    const handleLoginSuccess = () => setIsLoggedIn(true);
+    const navigate = useNavigate();
+
+    const handleLoginSuccess = () => {
+        setIsLoggedIn(true);
+        // Редірект на головну сторінку після успішного логіну.
+        // Це можна зробити і тут, і в LoginPage, але тут централізованіше.
+        navigate('/trauma-journal');
+    };
+
     const handleLogout = () => {
         localStorage.removeItem('userInfo');
         setIsLoggedIn(false);
+        // Явний редірект на сторінку входу.
+        navigate('/login', { replace: true }); 
     };
 
     return (
         <ChakraProvider theme={theme}>
             <Routes>
                 {isLoggedIn ? (
-                    // --- ЗАХИЩЕНІ РОУТИ (коли користувач залогінений) ---
                     <Route
                         path="/*"
                         element={
@@ -151,14 +160,12 @@ function App() {
                                     <Route path="trauma-records/:id/view" element={<PatientRecordView />} />
                                     <Route path="reports" element={<UnderDevelopmentPage title="Звіти" />} />
                                     <Route path="settings" element={<UnderDevelopmentPage title="Налаштування" />} />
-                                    {/* Будь-який інший шлях перенаправляє на головну */}
-                                    <Route path="*" element={<Navigate to="/" replace />} />
+                                    <Route path="*" element={<Navigate to="/trauma-journal" replace />} />
                                 </Routes>
                             </MainAppLayout>
                         }
                     />
                 ) : (
-                    // --- ПУБЛІЧНІ РОУТИ (коли користувач не залогінений) ---
                     <Route
                         path="/*"
                         element={
@@ -166,7 +173,6 @@ function App() {
                                 <Routes>
                                     <Route path="/login" element={<LoginPage onLoginSuccess={handleLoginSuccess} />} />
                                     <Route path="/register" element={<RegisterPage />} />
-                                    {/* Будь-який інший шлях перенаправляє на сторінку входу */}
                                     <Route path="*" element={<Navigate to="/login" replace />} />
                                 </Routes>
                             </AuthLayout>

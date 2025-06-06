@@ -51,7 +51,7 @@ function PatientRecordGrid({
                     record={record}
                     onCardClick={() => onCardClick(record._id)}
                     onEditClick={() => onEditClick(record._id)}
-                    onDeleteClick={(e) => onDeleteClick(e, record)} // Pass event if needed by handler
+                    onDeleteClick={() => onDeleteClick(record)} 
                     styles={styles}
                     getTriageDisplay={getTriageDisplay}
                     getPatientDisplayName={getPatientDisplayName}

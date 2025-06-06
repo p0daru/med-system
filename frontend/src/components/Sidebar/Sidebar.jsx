@@ -8,7 +8,7 @@ import {
     Icon,
     Divider,
     Heading,
-    Button, // Переконуємось, що Button імпортовано
+    Button,
     Drawer,
     DrawerBody,
     DrawerHeader,
@@ -17,18 +17,13 @@ import {
     DrawerCloseButton,
     useColorModeValue
 } from '@chakra-ui/react';
-import { FiHome, FiFileText, FiSettings, FiLogOut } from 'react-icons/fi'; // <-- ДОДАНО FiLogOut
 import { NavLink as RouterNavLink } from 'react-router-dom';
-import {
-    TimeIcon,
-    SettingsIcon,
-    AttachmentIcon
-} from '@chakra-ui/icons';
+import { TimeIcon, SettingsIcon, AttachmentIcon } from '@chakra-ui/icons';
+import { FiLogOut } from 'react-icons/fi';
 import { useAuth } from '../../hooks/useAuth';
 
-// Компонент для елемента навігації (без змін)
+// Компонент для елемента навігації
 const NavItem = ({ icon, children, to, onClose, ...rest }) => {
-    // ... твій код NavItem залишається без змін
     const activeBg = useColorModeValue("red.100", "red.700");
     const activeColor = useColorModeValue("red.700", "white");
     const hoverBg = useColorModeValue("gray.100", "gray.700");
@@ -68,10 +63,21 @@ const NavItem = ({ icon, children, to, onClose, ...rest }) => {
     );
 };
 
+// Основний компонент Sidebar
 function Sidebar({ isOpen, onClose, display, isDrawer = false, onLogout, ...rest }) { 
-    const { isAdmin, isDoctor, isMedic, user } = useAuth(); 
+    const { isAdmin, user } = useAuth(); 
     const bgColor = useColorModeValue('white', 'gray.800');
     const borderColor = useColorModeValue('gray.200', 'gray.700');
+
+    // Функція, що повертає назву ролі українською
+    const getRoleName = (role) => {
+        switch (role) {
+            case 'medic': return 'Медик';
+            case 'doctor': return 'Лікар';
+            case 'admin': return 'Адміністратор';
+            default: return 'Невідома роль';
+        }
+    };
 
     const sidebarContent = (
         <Box
@@ -82,8 +88,8 @@ function Sidebar({ isOpen, onClose, display, isDrawer = false, onLogout, ...rest
             h="full"
             pt={isDrawer ? 0 : 4}
             pb={4}
-            display="flex" // <-- ДОДАНО: Для роботи flex="1"
-            flexDirection="column" // <-- ДОДАНО: Для роботи flex="1"
+            display="flex"
+            flexDirection="column"
         >
             <VStack spacing={3} align="stretch">
                 <Box px={4} mb={isDrawer ? 0 : 2} display={isDrawer ? 'none' : 'block'}>
@@ -93,19 +99,16 @@ function Sidebar({ isOpen, onClose, display, isDrawer = false, onLogout, ...rest
                     <Divider my={3} />
                 </Box>
 
-                {/* Це посилання бачать всі залогінені користувачі */}
                 <NavItem icon={TimeIcon} to="/trauma-journal" onClose={onClose}>
                     Журнал Пацієнтів
                 </NavItem>
                 
-                {/* Це посилання бачать ТІЛЬКИ адміни */}
                 {isAdmin && (
                     <NavItem icon={AttachmentIcon} to="/reports" onClose={onClose}>
                         Звіти
                     </NavItem>
                 )}
 
-                {/* Це посилання бачать ТІЛЬКИ адміни */}
                 {isAdmin && (
                     <NavItem icon={SettingsIcon} to="/settings" onClose={onClose}>
                         Налаштування
@@ -113,15 +116,13 @@ function Sidebar({ isOpen, onClose, display, isDrawer = false, onLogout, ...rest
                 )}
             </VStack>
 
-            {/* <--- ЗМІНИ ТУТ: Додаємо кнопку виходу ---> */}
-            <Box flex="1" /> {/* Цей розпірник "притисне" кнопку до низу */}
+            {/* Блок з інформацією про користувача та кнопкою виходу */}
+            <Box flex="1" /> {/* Розпірник, що притискає наступний блок до низу */}
 
              <Box px={4} textAlign='center' mb={2}>
-                <Text fontWeight="bold">{user?.username}</Text>
+                <Text fontWeight="bold">{user?.username || 'Користувач'}</Text>
                 <Text fontSize="sm" color="gray.500" textTransform="capitalize">
-                    {user?.role === 'medic' && 'Медик'}
-                    {user?.role === 'doctor' && 'Лікар'}
-                    {user?.role === 'admin' && 'Адміністратор'}
+                    {getRoleName(user?.role)}
                 </Text>
             </Box>
             
@@ -129,11 +130,13 @@ function Sidebar({ isOpen, onClose, display, isDrawer = false, onLogout, ...rest
                 <Button
                     width="full"
                     colorScheme="red"
-                    variant="outline" // "outline" виглядає добре для дії виходу
+                    variant="outline"
                     leftIcon={<Icon as={FiLogOut} />}
                     onClick={() => {
-                        if(onLogout) onLogout(); // Викликаємо функцію виходу
-                        if(onClose) onClose(); // Закриваємо мобільне меню, якщо воно відкрите
+                        // Викликаємо функцію onLogout, передану з App.jsx
+                        if (onLogout) onLogout();
+                        // Закриваємо мобільне меню, якщо воно було відкрите
+                        if (onClose) onClose();
                     }}
                 >
                     Вийти
@@ -149,6 +152,7 @@ function Sidebar({ isOpen, onClose, display, isDrawer = false, onLogout, ...rest
         </Box>
     );
 
+    // Логіка для відображення як Drawer на мобільних
     if (isDrawer) {
         return (
             <Drawer isOpen={isOpen} placement="left" onClose={onClose} size="xs">
@@ -159,13 +163,14 @@ function Sidebar({ isOpen, onClose, display, isDrawer = false, onLogout, ...rest
                         Навігація
                     </DrawerHeader>
                     <DrawerBody p={0}>
-                        {React.cloneElement(sidebarContent, { onLogout, onClose })}
+                        {sidebarContent}
                     </DrawerBody>
                 </DrawerContent>
             </Drawer>
         );
     }
     
+    // Відображення як статичної панелі на десктопі
     return (
         <Box
             as="nav"
@@ -178,7 +183,7 @@ function Sidebar({ isOpen, onClose, display, isDrawer = false, onLogout, ...rest
             boxShadow="sm"
             {...rest}
         >
-            {React.cloneElement(sidebarContent, { onLogout, onClose })}
+            {sidebarContent}
         </Box>
     );
 }
